@@ -1,0 +1,8 @@
+Generic single-database configuration.
+
+Steps:
+1. sudo docker exec -it research-vault-app-1 bash 
+
+2. alembic revision -m "A message for migration"
+
+3. alembic upgrade head
