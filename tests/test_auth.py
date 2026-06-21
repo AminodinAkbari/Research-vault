@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
-REGISTER_PAYLOAD = {"email": "amin@example.com", "password": "supersecret123"}
+REGISTER_PAYLOAD = {"email": "alice@example.com", "password": "supersecret123"}
 
 
 @pytest.mark.asyncio
@@ -52,7 +52,7 @@ async def test_login_wrong_password_fails(client: AsyncClient) -> None:
 async def test_login_unknown_email_fails(client: AsyncClient) -> None:
     response = await client.post(
         "/api/v1/auth/login",
-        json={"email": "nothing@example.com", "password": "123"},
+        json={"email": "nobody@example.com", "password": "whatever123"},
     )
     assert response.status_code == 401
 
@@ -82,4 +82,5 @@ async def test_protected_route_with_valid_token(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {body['access_token']}"},
     )
     assert response.status_code == 200
-    assert response.json()["user_id"] == body["id"]
+    # A freshly registered user has no projects yet; the real list endpoint
+    assert response.json() == []

@@ -6,7 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.tag import TagRead
+from app.schemas.tag import TagResponse
 
 
 class NoteBase(BaseModel):
@@ -35,6 +35,6 @@ class NoteRead(NoteBase):
     project_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
-    tags: list[TagRead] = []
+    tags: list[TagResponse] = []
 
     model_config = ConfigDict(from_attributes=True)

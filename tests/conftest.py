@@ -94,3 +94,27 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield ac
 
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def make_user(client: AsyncClient):
+    """Factory fixture: register a new user via the real API and return
+    (user_json, auth_headers). Call it multiple times in a test to get
+    distinct users for ownership/isolation checks.
+    """
+    counter = {"n": 0}
+
+    async def _make_user(
+        email: str | None = None, password: str = "supersecret123"
+    ) -> tuple[dict, dict[str, str]]:
+        counter["n"] += 1
+        email = email or f"user{counter['n']}@example.com"
+        response = await client.post(
+            "/api/v1/auth/register", json={"email": email, "password": password}
+        )
+        assert response.status_code == 201, response.text
+        body = response.json()
+        headers = {"Authorization": f"Bearer {body['access_token']}"}
+        return body, headers
+
+    return _make_user
