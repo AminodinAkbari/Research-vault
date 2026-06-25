@@ -48,17 +48,17 @@ All of the following are implemented and tested:
 
 ## Tech Stack
 
-| Layer            | Technology                                                     |
-| ---------------- | -------------------------------------------------------------- |
-| API framework    | FastAPI (async)                                                |
-| Database         | PostgreSQL 16 + SQLAlchemy 2.0 (async)                         |
-| Migrations       | Alembic                                                        |
-| Validation       | Pydantic v2                                                    |
-| Caching / broker | Redis                                                          |
-| Background tasks | Celery (using Redis as broker)                                 |
-| Search engine    | SearXNG (self‑hosted)                                          |
-| Containerization | Docker Compose                                                 |
-| Auth             | JWT via `python-jose`, password hashing with `passlib[bcrypt]` |
+| Layer            | Technology                                                    |
+| ---------------- | ------------------------------------------------------------- |
+| API framework    | FastAPI (async)                                               |
+| Database         | PostgreSQL 16 + SQLAlchemy 2.0 (async)                        |
+| Migrations       | Alembic                                                       |
+| Validation       | Pydantic v2                                                   |
+| Caching / broker | Redis                                                         |
+| Background tasks | Celery (using Redis as broker)                                |
+| Search engine    | SearXNG (self‑hosted)                                         |
+| Containerization | Docker Compose                                                |
+| Auth             | JWT via`python-jose`, password hashing with `passlib[bcrypt]` |
 
 ---
 
@@ -127,8 +127,8 @@ Soon we will have [HTMX](https://htmx.org/ "Click to see what is html") for a si
 - Milestone 1 – Project skeleton, database models, Docker setup ✓
 - Milestone 2 – Auth & user isolation ✓
 - Milestone 3 – Projects, notes, and tags CRUD ✓
-- Milestone 4 – Web search (SearXNG) and link saving -> `In progress`
-- Milestone 5 – Asynchronous content extraction
+- Milestone 4 – Web search (SearXNG) and link saving ✓
+- Milestone 5 – Asynchronous content extraction -> `In progress`
 - Milestone 6 – Full‑text search and organization
 
 I aim to complete a milestone every few days. Progress updates will land in the master branch.
