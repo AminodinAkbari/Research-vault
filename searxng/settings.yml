@@ -1,0 +1,9 @@
+use_default_settings: true
+
+server:
+  image_proxy: true
+  limiter: false
+
+search:
+  formats:
+    - json

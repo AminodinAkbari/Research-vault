@@ -7,7 +7,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 from app.models.link import ExtractionStatus
-from app.schemas.tag import TagRead
+from app.schemas.tag import TagResponse
 
 
 class SavedLinkBase(BaseModel):
@@ -41,6 +41,6 @@ class SavedLinkRead(SavedLinkBase):
     extracted_content: Optional[str] = None
     extraction_status: ExtractionStatus
     created_at: datetime
-    tags: list[TagRead] = []
+    tags: list[TagResponse] = []
 
     model_config = ConfigDict(from_attributes=True)

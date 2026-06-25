@@ -47,10 +47,13 @@ services:
 
   searxng:
     image: searxng/searxng
+    # TODO: Remove port mapping for production (searxng container).
     ports:
       - "8080:8080"
+    environment:
+      - SEARXNG_SECRET=${SEARXNG_SECRET}
     volumes:
-      - searxng_data:/etc/searxng
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
     restart: unless-stopped
 
   celery_worker:
