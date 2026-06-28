@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+import os
 
 class Settings(BaseSettings):
-    # Database
+    # Database (async — used by FastAPI)
     DATABASE_URL: str
+
+    # Database (sync — used by Celery tasks and Alembic)
+    DATABASE_URL_SYNC: str
 
     # Redis / Celery
     REDIS_URL: str

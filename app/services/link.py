@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.link import ExtractionStatus, SavedLink
+from app.tasks.extraction import extract_link_content
 
 
 class LinkNotFoundError(Exception):
@@ -62,6 +63,8 @@ async def create_link(
     )
     db.add(link)
     await db.flush()
+    await db.refresh(link)
+    extract_link_content.delay(str(link.id))
     return await get_link(db, project_id=project_id, link_id=link.id)
 
 
