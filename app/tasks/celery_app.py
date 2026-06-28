@@ -16,10 +16,5 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
-    # Autodiscover tasks inside this package
-    # Add task modules here as they are created:
-    # e.g. "app.tasks.extraction"
-    include=[],
+    include=["app.tasks.extraction"],
 )
-
-celery_app.autodiscover_tasks(["app.tasks"])
