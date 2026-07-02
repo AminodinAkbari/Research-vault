@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.models.project import Project
 from app.schemas.link import SavedLinkCreate, SavedLinkRead
 from app.schemas.search import SearchQuery, SearchResult
+from app.schemas.tag import TagAttachRequest
 from app.services import link as link_service
 from app.services.searxng import search_searxng
 
@@ -70,6 +71,40 @@ async def delete_link(
 ) -> None:
     try:
         await link_service.delete_link(db, project_id=project.id, link_id=link_id)
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Link not found"
+        ) from exc
+
+
+@router.post("/links/{link_id}/tags", response_model=SavedLinkRead)
+async def attach_tags_to_link(
+    link_id: uuid.UUID,
+    payload: TagAttachRequest,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> SavedLinkRead:
+    try:
+        return await link_service.attach_tags(
+            db, project_id=project.id, link_id=link_id, tag_ids=payload.tag_ids
+        )
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Link not found"
+        ) from exc
+
+
+@router.delete("/links/{link_id}/tags/{tag_id}", response_model=SavedLinkRead)
+async def detach_tag_from_link(
+    link_id: uuid.UUID,
+    tag_id: uuid.UUID,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> SavedLinkRead:
+    try:
+        return await link_service.detach_tag(
+            db, project_id=project.id, link_id=link_id, tag_id=tag_id
+        )
     except link_service.LinkNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Link not found"
