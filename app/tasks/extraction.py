@@ -13,6 +13,8 @@ from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
+logger.info("Loading extraction module")
+
 # TODO: should we set the header value in .env file or just hardcoded like this ?
 _HEADERS = {"User-Agent": "ResearchVault/1.0"}
 
@@ -29,6 +31,7 @@ def extract_link_content(link_id: str) -> None:
     db = SessionLocal()
     try:
         link: SavedLink | None = db.get(SavedLink, uuid.UUID(link_id))
+        print("THIS IS THE LINK :" , link)
         if link is None:
             logger.error("extract_link_content: link %s not found — skipping", link_id)
             return

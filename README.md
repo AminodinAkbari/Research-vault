@@ -122,14 +122,15 @@ Soon we will have [HTMX](https://htmx.org/ "Click to see what is html") for a si
 
 ---
 
-## Roadmap (high‑level)
+## Live-Roadmap (high‑level)
 
-- Milestone 1 – Project skeleton, database models, Docker setup ✓
-- Milestone 2 – Auth & user isolation ✓
-- Milestone 3 – Projects, notes, and tags CRUD ✓
-- Milestone 4 – Web search (SearXNG) and link saving ✓
-- Milestone 5 – Asynchronous content extraction -> `In progress`
-- Milestone 6 – Full‑text search and organization
+- ~~Milestone 1~~ – Project skeleton, database models, Docker setup ✓
+- ~~Milestone 2~~ – Auth & user isolation ✓
+- ~~Milestone 3~~ – Projects, notes, and tags CRUD ✓
+- ~~Milestone 4~~ – Web search (SearXNG) and link saving ✓
+- ~~Milestone 5~~ – Asynchronous content extraction ✓
+- ~~Milestone 6~~ – Full‑text search and organization ✓
+- Creating basic UI -> `in progress`
 
 I aim to complete a milestone every few days. Progress updates will land in the master branch.
 
