@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.link import ExtractionStatus, SavedLink
+from app.models.tag import LinkTag, Tag
 from app.tasks.extraction import extract_link_content
 
 
@@ -74,3 +75,54 @@ async def delete_link(
     link = await get_link(db, project_id=project_id, link_id=link_id)
     await db.delete(link)
     await db.flush()
+
+
+async def attach_tags(
+    db: AsyncSession,
+    *,
+    project_id: uuid.UUID,
+    link_id: uuid.UUID,
+    tag_ids: list[uuid.UUID],
+) -> SavedLink:
+    link = await get_link(db, project_id=project_id, link_id=link_id)
+
+    valid_tag_ids = await _valid_tag_ids(db, project_id=project_id, tag_ids=tag_ids)
+    existing_result = await db.execute(
+        select(LinkTag.tag_id).where(LinkTag.link_id == link.id)
+    )
+    existing_tag_ids = set(existing_result.scalars().all())
+
+    for tag_id in valid_tag_ids - existing_tag_ids:
+        db.add(LinkTag(link_id=link.id, tag_id=tag_id))
+
+    await db.flush()
+    return await get_link(db, project_id=project_id, link_id=link.id)
+
+
+async def detach_tag(
+    db: AsyncSession,
+    *,
+    project_id: uuid.UUID,
+    link_id: uuid.UUID,
+    tag_id: uuid.UUID,
+) -> SavedLink:
+    link = await get_link(db, project_id=project_id, link_id=link_id)
+    await db.execute(
+        LinkTag.__table__.delete().where(
+            LinkTag.link_id == link.id, LinkTag.tag_id == tag_id
+        )
+    )
+    await db.flush()
+    return await get_link(db, project_id=project_id, link_id=link.id)
+
+
+async def _valid_tag_ids(
+    db: AsyncSession, *, project_id: uuid.UUID, tag_ids: list[uuid.UUID]
+) -> set[uuid.UUID]:
+    """Filter tag_ids down to ones that actually belong to this project."""
+    if not tag_ids:
+        return set()
+    result = await db.execute(
+        select(Tag.id).where(Tag.project_id == project_id, Tag.id.in_(tag_ids))
+    )
+    return set(result.scalars().all())
