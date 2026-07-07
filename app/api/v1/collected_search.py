@@ -18,4 +18,5 @@ async def search_collected_endpoint(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> list[CollectedSearchResult]:
+    """Search notes and saved links in the current project."""
     return await search_collected(db, project_id=project.id, q=q)

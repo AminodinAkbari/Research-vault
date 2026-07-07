@@ -22,6 +22,7 @@ async def search(
     payload: SearchQuery,
     project: Project = Depends(get_current_project),
 ) -> list[SearchResult]:
+    """Run an external web search using SearXNG."""
     return await search_searxng(payload.query)
 
 
@@ -31,6 +32,7 @@ async def create_link(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> SavedLinkRead:
+    """Save a new link to the current project."""
     return await link_service.create_link(
         db,
         project_id=project.id,
@@ -46,6 +48,7 @@ async def list_links(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> list[SavedLinkRead]:
+    """List all saved links for the current project."""
     return await link_service.list_links(db, project_id=project.id)
 
 
@@ -55,6 +58,10 @@ async def get_link(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> SavedLinkRead:
+    """Get a single saved link by ID.
+
+    Raises 404 NOT FOUND when the link does not exist in this project.
+    """
     try:
         return await link_service.get_link(db, project_id=project.id, link_id=link_id)
     except link_service.LinkNotFoundError as exc:
@@ -69,6 +76,10 @@ async def delete_link(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    """Delete a saved link by ID.
+
+    Raises 404 NOT FOUND when the link does not exist in this project.
+    """
     try:
         await link_service.delete_link(db, project_id=project.id, link_id=link_id)
     except link_service.LinkNotFoundError as exc:
@@ -84,6 +95,10 @@ async def attach_tags_to_link(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> SavedLinkRead:
+    """Attach one or more tags to a saved link.
+
+    Raises 404 NOT FOUND when the link does not exist in this project.
+    """
     try:
         return await link_service.attach_tags(
             db, project_id=project.id, link_id=link_id, tag_ids=payload.tag_ids
@@ -101,6 +116,10 @@ async def detach_tag_from_link(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> SavedLinkRead:
+    """Detach a tag from a saved link.
+
+    Raises 404 NOT FOUND when the link does not exist in this project.
+    """
     try:
         return await link_service.detach_tag(
             db, project_id=project.id, link_id=link_id, tag_id=tag_id

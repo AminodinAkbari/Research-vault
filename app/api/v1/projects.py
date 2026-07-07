@@ -19,6 +19,7 @@ async def create_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectRead:
+    """Create a new project owned by the current user."""
     return await project_service.create_project(
         db,
         user_id=current_user.id,
@@ -32,11 +33,13 @@ async def list_projects(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectRead]:
+    """List all projects owned by the current user."""
     return await project_service.list_projects(db, user_id=current_user.id)
 
 
 @router.get("/{project_id}", response_model=ProjectRead)
 async def get_project(project: Project = Depends(get_current_project)) -> ProjectRead:
+    """Get the project identified by the path parameter."""
     return project
 
 
@@ -46,6 +49,7 @@ async def update_project(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectRead:
+    """Apply a partial update to the current project."""
     return await project_service.apply_project_update(
         db, project=project, update_data=payload.model_dump(exclude_unset=True)
     )
@@ -56,4 +60,5 @@ async def delete_project(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    """Delete the current project and all of its notes, links, and tags."""
     await project_service.delete_project(db, project=project)

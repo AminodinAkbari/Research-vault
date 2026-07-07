@@ -24,6 +24,10 @@ async def register(
     payload: AuthRegister,
     db: AsyncSession = Depends(get_db),
 ) -> RegisterResponse:
+    """Register a new user and return an access token.
+
+    Raises 409 CONFLICT if the email address is already registered.
+    """
     try:
         user = await register_user(db, email=payload.email, password=payload.password)
     except AuthError as exc:
@@ -47,6 +51,10 @@ async def login(
     payload: AuthLogin,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
+    """Authenticate a user and issue a JWT access token.
+
+    Raises 401 UNAUTHORIZED for invalid credentials.
+    """
     try:
         user = await authenticate_user(db, email=payload.email, password=payload.password)
     except AuthError as exc:

@@ -20,6 +20,10 @@ async def create_tag(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> TagRead:
+    """Create a new tag for the current project.
+
+    Raises 409 CONFLICT if a tag with the same name already exists.
+    """
     try:
         return await tag_service.create_tag(db, project_id=project.id, name=payload.name)
     except tag_service.TagAlreadyExistsError as exc:
@@ -34,6 +38,7 @@ async def list_tags(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> list[TagRead]:
+    """List all tags defined for the current project."""
     return await tag_service.list_tags(db, project_id=project.id)
 
 
@@ -43,6 +48,10 @@ async def delete_tag(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    """Delete a tag by ID.
+
+    Raises 404 NOT FOUND when the tag does not exist in this project.
+    """
     try:
         await tag_service.delete_tag(db, project_id=project.id, tag_id=tag_id)
     except tag_service.TagNotFoundError as exc:

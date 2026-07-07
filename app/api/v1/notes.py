@@ -21,6 +21,7 @@ async def create_note(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> NoteRead:
+    """Create a new note inside the current project."""
     return await note_service.create_note(
         db,
         project_id=project.id,
@@ -35,6 +36,7 @@ async def list_notes(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> list[NoteRead]:
+    """List all notes that belong to the current project."""
     return await note_service.list_notes(db, project_id=project.id)
 
 
@@ -44,6 +46,10 @@ async def get_note(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> NoteRead:
+    """Get a single note by ID.
+
+    Raises 404 NOT FOUND when the note does not exist in this project.
+    """
     try:
         return await note_service.get_note(db, project_id=project.id, note_id=note_id)
     except note_service.NoteNotFoundError as exc:
@@ -57,6 +63,10 @@ async def update_note(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> NoteRead:
+    """Apply a partial update to a note.
+
+    Raises 404 NOT FOUND when the note does not exist in this project.
+    """
     try:
         return await note_service.update_note(
             db,
@@ -74,6 +84,10 @@ async def delete_note(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    """Delete a note by ID.
+
+    Raises 404 NOT FOUND when the note does not exist in this project.
+    """
     try:
         await note_service.delete_note(db, project_id=project.id, note_id=note_id)
     except note_service.NoteNotFoundError as exc:
@@ -87,6 +101,10 @@ async def attach_tags(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> NoteRead:
+    """Attach one or more tags to a note.
+
+    Raises 404 NOT FOUND when the note does not exist in this project.
+    """
     try:
         return await note_service.attach_tags(
             db, project_id=project.id, note_id=note_id, tag_ids=payload.tag_ids
@@ -102,6 +120,10 @@ async def detach_tag(
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> NoteRead:
+    """Detach a tag from a note.
+
+    Raises 404 NOT FOUND when the note does not exist in this project.
+    """
     try:
         return await note_service.detach_tag(
             db, project_id=project.id, note_id=note_id, tag_id=tag_id
