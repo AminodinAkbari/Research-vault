@@ -4,12 +4,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 
+from app.api.ui import router as ui_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.collected_search import router as collected_search_router
 from app.api.v1.links import router as links_router
 from app.api.v1.notes import router as notes_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.tags import router as tags_router
+from app.core.templates import templates  # noqa: F401  (canonical Jinja2Templates instance)
 from app.db.base import Base
 from app.db.session import engine
 
@@ -29,6 +31,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ---------------------------------------------------------------------------
+# JSON API — versioned under /api/v1
+# ---------------------------------------------------------------------------
+
 v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(auth_router, prefix="/auth", tags=["auth"])
 v1_router.include_router(projects_router, prefix="/projects", tags=["projects"])
@@ -41,6 +47,12 @@ v1_router.include_router(
     tags=["search"],
 )
 app.include_router(v1_router)
+
+# ---------------------------------------------------------------------------
+# Server-rendered HTML UI — Jinja2 + HTMX, mounted at the root
+# ---------------------------------------------------------------------------
+
+app.include_router(ui_router)
 
 
 @app.get("/health", tags=["health"])

@@ -1,0 +1,61 @@
+{% extends "base.html" %} {% block title %}Dashboard – Research Vault{% endblock
+%} {% block extra_head %}
+<style>
+  .new-project-form {
+    margin-block: 1.25rem 1.75rem;
+  }
+  .new-project-form article {
+    margin: 0;
+    padding: 1.25rem;
+  }
+  .new-project-form h3 {
+    margin-bottom: 0.25rem;
+  }
+  .new-project-form fieldset {
+    margin: 0.75rem 0 0;
+    padding: 0;
+    border: 0;
+  }
+</style>
+{% endblock %} {% block content %}
+<section>
+  <hgroup>
+    <h2>Your projects</h2>
+    <h3>Isolated containers for each research topic.</h3>
+  </hgroup>
+
+  <form
+    class="new-project-form"
+    hx-post="/dashboard/projects"
+    hx-target="#project-list"
+    hx-swap="outerHTML"
+    hx-on::after-request="if (event.detail.successful) this.reset()"
+    aria-label="Create a new project"
+  >
+    <article>
+      <hgroup>
+        <h3>Create a project</h3>
+        <small>Give it a name and an optional description.</small>
+      </hgroup>
+      <fieldset role="group">
+        <input
+          type="text"
+          name="name"
+          aria-label="Project name"
+          placeholder="Project name"
+          required
+        />
+        <input
+          type="text"
+          name="description"
+          aria-label="Project description"
+          placeholder="Description (optional)"
+        />
+        <button type="submit">Create</button>
+      </fieldset>
+    </article>
+  </form>
+
+  {% include "partials/project_list.html" %}
+</section>
+{% endblock %}

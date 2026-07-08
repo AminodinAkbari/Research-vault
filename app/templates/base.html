@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Research Vault{% endblock %}</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <style>
+      .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding-block: 1rem;
+      }
+      .app-header nav ul {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        list-style: none;
+        margin: 0;
+      }
+      .brand-link {
+        text-decoration: none;
+        color: inherit;
+      }
+      .project-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+      .error-message {
+        color: var(--pico-del-color);
+        min-height: 1.5rem;
+      }
+      main.container {
+        padding-block: 2rem;
+      }
+    </style>
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body>
+    <header class="container app-header">
+      <a href="/" class="brand-link"><h1>Research Vault</h1></a>
+      <nav aria-label="Primary">
+        <ul>
+          {% if current_user %}
+          <li>Signed in as <strong>{{ current_user.email }}</strong></li>
+          <li>
+            <form method="post" action="/logout">
+              <button type="submit" class="secondary outline">Log out</button>
+            </form>
+          </li>
+          {% else %}
+          <li><a href="/login">Log in</a></li>
+          <li><a href="/register" role="button">Sign up</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </header>
+
+    <main class="container">{% block content %}{% endblock %}</main>
+
+    <footer class="container">
+      <small
+        >Research Vault — self-hosted research &amp; knowledge
+        management.</small
+      >
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+  </body>
+</html>

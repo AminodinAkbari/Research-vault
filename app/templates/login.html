@@ -1,0 +1,82 @@
+{% extends "base.html" %} {% block title %}Log in – Research Vault{% endblock %}
+{% block content %}
+<article style="max-width: 420px; margin-inline: auto">
+  <hgroup>
+    <h2>Log in</h2>
+    <h3>Welcome back — access your research projects.</h3>
+  </hgroup>
+
+  <div
+    id="login-error"
+    class="error-message"
+    role="alert"
+    aria-live="polite"
+  ></div>
+
+  <form id="login-form" novalidate>
+    <label for="email"
+      >Email
+      <input
+        type="email"
+        id="email"
+        name="email"
+        required
+        autocomplete="email"
+        placeholder="you@example.com"
+      />
+    </label>
+    <label for="password"
+      >Password
+      <input
+        type="password"
+        id="password"
+        name="password"
+        required
+        autocomplete="current-password"
+        placeholder="••••••••"
+      />
+    </label>
+    <button type="submit">Log in</button>
+  </form>
+
+  <p>Don't have an account? <a href="/register">Create one</a></p>
+</article>
+
+{% block extra_scripts %}
+<script>
+  document
+    .getElementById("login-form")
+    .addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const errorBox = document.getElementById("login-error");
+      errorBox.textContent = "";
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        const response = await fetch("/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          errorBox.textContent = data.detail || "Invalid email or password.";
+          return;
+        }
+
+        const data = await response.json();
+        // The server also sets an httpOnly cookie on this same response, which
+        // is what actually keeps page navigations authenticated. localStorage
+        // is kept as a fallback for callers that talk to the JSON API directly.
+        localStorage.setItem("access_token", data.access_token);
+        window.location.href = "/dashboard";
+      } catch (err) {
+        errorBox.textContent = "Something went wrong. Please try again.";
+      }
+    });
+</script>
+{% endblock %} {% endblock %}
