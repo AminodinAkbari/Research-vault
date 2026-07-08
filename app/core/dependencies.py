@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +17,10 @@ from app.services.auth import get_user_by_id
 # itself accepts a JSON body rather than an OAuth2 form.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
+# Name of the httpOnly cookie set by /api/v1/auth/login and /api/v1/auth/register,
+# used by the server-rendered UI (app/api/ui.py) to authenticate page loads.
+COOKIE_NAME = "access_token"
+
 _credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Could not validate credentials",
@@ -24,27 +28,40 @@ _credentials_exception = HTTPException(
 )
 
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db),
-) -> User:
+async def _resolve_user_from_token(token: str | None, db: AsyncSession) -> User | None:
+    """Decode a JWT and look up the corresponding user. Returns None on any failure.
+
+    Shared by both the header-based (API) and cookie-based (UI) auth
+    dependencies so the actual token → user resolution logic lives in
+    exactly one place.
+    """
+    if not token:
+        return None
+
     payload = decode_access_token(token)
     if payload is None:
-        raise _credentials_exception
+        return None
 
     subject = payload.get("sub")
     if subject is None:
-        raise _credentials_exception
+        return None
 
     try:
         user_id = uuid.UUID(subject)
     except ValueError:
-        raise _credentials_exception
+        return None
 
-    user = await get_user_by_id(db, user_id)
+    return await get_user_by_id(db, user_id)
+
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """API auth dependency: requires a valid `Authorization: Bearer <token>` header."""
+    user = await _resolve_user_from_token(token, db)
     if user is None:
         raise _credentials_exception
-
     return user
 
 
@@ -74,3 +91,42 @@ async def get_current_project(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this project",
         ) from exc
+
+
+# ---------------------------------------------------------------------------
+# Cookie-based auth — used by the server-rendered HTML UI (app/api/ui.py).
+# The JWT is identical in shape to the header-based token; it's just carried
+# in an httpOnly cookie instead of an Authorization header so plain page
+# navigations and <form> submissions stay authenticated without any JS.
+# ---------------------------------------------------------------------------
+
+
+async def get_current_user_from_cookie(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """UI auth dependency: requires a valid `access_token` cookie.
+
+    Redirects to /login (via a 303 response) instead of returning a JSON 401,
+    since this guards HTML pages rendered for a browser rather than API calls.
+    """
+    token = request.cookies.get(COOKIE_NAME)
+    user = await _resolve_user_from_token(token, db)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_303_SEE_OTHER,
+            headers={"Location": "/login"},
+        )
+    return user
+
+
+async def get_optional_current_user_from_cookie(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """Like `get_current_user_from_cookie`, but returns None instead of
+    redirecting. Used on public pages (login/register/root) that want to know
+    whether someone is already signed in without forcing a redirect loop.
+    """
+    token = request.cookies.get(COOKIE_NAME)
+    return await _resolve_user_from_token(token, db)
