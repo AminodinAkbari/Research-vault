@@ -1,0 +1,15 @@
+<div id="project-list" class="project-grid">
+  {% for project in projects %}
+  <article aria-label="Project: {{ project.name }}">
+    <header><strong>{{ project.name }}</strong></header>
+    <p>{{ project.description or "No description yet." }}</p>
+    <footer>
+      <small>Created {{ project.created_at.strftime("%b %d, %Y") }}</small>
+    </footer>
+  </article>
+  {% else %}
+  <p>
+    You don't have any projects yet. Create your first one above to get started.
+  </p>
+  {% endfor %}
+</div>
