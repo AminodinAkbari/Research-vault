@@ -1,0 +1,98 @@
+{% extends "base.html" %} {% block title %}Sign up – Research Vault{% endblock
+%} {% block content %}
+<article style="max-width: 420px; margin-inline: auto">
+  <hgroup>
+    <h2>Create your account</h2>
+    <h3>Start organizing your research in seconds.</h3>
+  </hgroup>
+
+  <div
+    id="register-error"
+    class="error-message"
+    role="alert"
+    aria-live="polite"
+  ></div>
+
+  <form id="register-form" novalidate>
+    <label for="email"
+      >Email
+      <input
+        type="email"
+        id="email"
+        name="email"
+        required
+        autocomplete="email"
+        placeholder="you@example.com"
+      />
+    </label>
+    <label for="password"
+      >Password
+      <input
+        type="password"
+        id="password"
+        name="password"
+        required
+        minlength="8"
+        autocomplete="new-password"
+        placeholder="At least 8 characters"
+      />
+    </label>
+    <label for="confirm_password"
+      >Confirm password
+      <input
+        type="password"
+        id="confirm_password"
+        name="confirm_password"
+        required
+        minlength="8"
+        autocomplete="new-password"
+      />
+    </label>
+    <button type="submit">Sign up</button>
+  </form>
+
+  <p>Already have an account? <a href="/login">Log in</a></p>
+</article>
+
+{% block extra_scripts %}
+<script>
+  document
+    .getElementById("register-form")
+    .addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const errorBox = document.getElementById("register-error");
+      errorBox.textContent = "";
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirm_password").value;
+
+      if (password !== confirmPassword) {
+        errorBox.textContent = "Passwords do not match.";
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/v1/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          errorBox.textContent =
+            data.detail || "Could not create your account.";
+          return;
+        }
+
+        const data = await response.json();
+        localStorage.setItem("access_token", data.access_token);
+        window.location.href = "/dashboard";
+      } catch (err) {
+        errorBox.textContent = "Something went wrong. Please try again.";
+      }
+    });
+</script>
+{% endblock %} {% endblock %}
