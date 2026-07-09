@@ -1,0 +1,62 @@
+<article class="note-item" id="note-{{ note.id }}">
+  <header>
+    <strong>{{ note.title }}</strong>
+  </header>
+
+  <p>
+    {{ note.content[:200] }}{% if note.content and note.content|length > 200
+    %}…{% endif %} {% if not note.content %}<span class="muted"
+      >(No content)</span
+    >{% endif %}
+  </p>
+
+  <div class="note-tags" aria-label="Tags on this note">
+    {% for tag in note.tags %}
+    <button
+      type="button"
+      class="tag-badge secondary"
+      hx-delete="/projects/{{ project.id }}/notes/{{ note.id }}/tags/{{ tag.id }}"
+      hx-target="closest .note-item"
+      hx-swap="outerHTML"
+      title='Remove tag "{{ tag.name }}"'
+    >
+      {{ tag.name }} &times;
+    </button>
+    {% else %}
+    <span class="muted">No tags</span>
+    {% endfor %}
+  </div>
+
+  <div class="note-actions">
+    <button
+      type="button"
+      class="outline"
+      hx-get="/projects/{{ project.id }}/notes/{{ note.id }}/tags/available"
+      hx-target="#tag-picker-{{ note.id }}"
+      hx-swap="innerHTML"
+    >
+      Attach tag
+    </button>
+    <button
+      type="button"
+      class="outline"
+      hx-get="/projects/{{ project.id }}/notes/{{ note.id }}/edit"
+      hx-target="closest .note-item"
+      hx-swap="outerHTML"
+    >
+      Edit
+    </button>
+    <button
+      type="button"
+      class="secondary outline"
+      hx-delete="/projects/{{ project.id }}/notes/{{ note.id }}"
+      hx-target="closest .note-item"
+      hx-swap="outerHTML"
+      hx-confirm="Delete this note? This cannot be undone."
+    >
+      Delete
+    </button>
+  </div>
+
+  <div id="tag-picker-{{ note.id }}"></div>
+</article>

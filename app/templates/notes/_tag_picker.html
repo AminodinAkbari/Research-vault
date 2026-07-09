@@ -1,0 +1,18 @@
+{% if available_tags %}
+<div class="tag-picker" role="listbox" aria-label="Available tags to attach">
+  {% for tag in available_tags %}
+  <button
+    type="button"
+    class="tag-badge outline"
+    hx-post="/projects/{{ project.id }}/notes/{{ note.id }}/tags"
+    hx-vals='{"tag_id": "{{ tag.id }}"}'
+    hx-target="closest .note-item"
+    hx-swap="outerHTML"
+  >
+    + {{ tag.name }}
+  </button>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">All project tags are already attached to this note.</p>
+{% endif %}
