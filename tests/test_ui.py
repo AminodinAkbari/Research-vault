@@ -84,10 +84,11 @@ async def test_root_redirects_to_dashboard_when_logged_in(client: AsyncClient) -
 
 @pytest.mark.asyncio
 async def test_create_project_via_htmx_returns_fragment(client: AsyncClient) -> None:
-    await client.post(
+    register_resp = await client.post(
         "/api/v1/auth/register",
         json={"email": "htmx-user@example.com", "password": "supersecret123"},
     )
+    auth_headers = {"Authorization": f"Bearer {register_resp.json()['access_token']}"}
 
     response = await client.post(
         "/dashboard/projects",
@@ -100,7 +101,7 @@ async def test_create_project_via_htmx_returns_fragment(client: AsyncClient) -> 
     assert "created via htmx" in response.text
 
     # The underlying project was actually persisted via the shared service layer.
-    api_resp = await client.get("/api/v1/projects")
+    api_resp = await client.get("/api/v1/projects", headers=auth_headers)
     assert any(p["name"] == "My HTMX Project" for p in api_resp.json())
 
 
