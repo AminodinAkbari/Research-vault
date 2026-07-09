@@ -42,6 +42,81 @@
       main.container {
         padding-block: 2rem;
       }
+
+      /* Project detail: tabs */
+      .project-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-block: 1.5rem 1rem;
+        border-bottom: 1px solid var(--pico-muted-border-color);
+      }
+      .tab-button {
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 0.5rem 0.25rem;
+        margin-bottom: -1px;
+        cursor: pointer;
+        color: var(--pico-muted-color);
+        font-size: 1rem;
+      }
+      .tab-button[aria-selected="true"] {
+        color: var(--pico-primary);
+        border-bottom-color: var(--pico-primary);
+        font-weight: 600;
+      }
+
+      /* Notes & tags */
+      .note-item,
+      .tag-item {
+        border: 1px solid var(--pico-muted-border-color);
+        border-radius: var(--pico-border-radius);
+        padding: 1rem;
+        margin-block: 0.75rem;
+      }
+      .note-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-block: 0.5rem;
+      }
+      .tag-badge {
+        font-size: 0.8rem;
+        padding: 0.15rem 0.65rem;
+        border-radius: 999px;
+        width: auto;
+        display: inline-block;
+      }
+      .tag-picker {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.5rem;
+      }
+      .note-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+      .note-actions button {
+        width: auto;
+      }
+      .tags-list {
+        list-style: none;
+        padding: 0;
+      }
+      .tags-list .tag-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .tags-list .tag-item button {
+        width: auto;
+      }
+      .muted {
+        color: var(--pico-muted-color);
+      }
     </style>
     {% block extra_head %}{% endblock %}
   </head>
