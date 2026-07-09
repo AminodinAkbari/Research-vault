@@ -1,0 +1,13 @@
+<li class="tag-item" id="tag-{{ tag.id }}">
+  <span>{{ tag.name }}</span>
+  <button
+    type="button"
+    class="secondary outline"
+    hx-delete="/projects/{{ project.id }}/tags/{{ tag.id }}"
+    hx-target="closest .tag-item"
+    hx-swap="outerHTML"
+    hx-confirm='Delete tag "{{ tag.name }}"? It will be removed from all notes.'
+  >
+    Delete
+  </button>
+</li>
