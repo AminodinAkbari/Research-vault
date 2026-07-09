@@ -1,0 +1,4 @@
+{% if notes %} {% for note in notes %} {% include "notes/_note_item.html" %} {%
+endfor %} {% else %}
+<p class="muted">No notes yet. Add your first note above.</p>
+{% endif %}

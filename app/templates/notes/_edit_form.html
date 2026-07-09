@@ -1,0 +1,37 @@
+<form
+  class="note-item"
+  id="note-{{ note.id }}"
+  hx-put="/projects/{{ project.id }}/notes/{{ note.id }}"
+  hx-target="closest .note-item"
+  hx-swap="outerHTML"
+  aria-label="Edit note"
+>
+  <label for="edit-title-{{ note.id }}"
+    >Title
+    <input
+      type="text"
+      id="edit-title-{{ note.id }}"
+      name="title"
+      value="{{ note.title }}"
+      required
+    />
+  </label>
+  <label for="edit-content-{{ note.id }}"
+    >Content
+    <textarea id="edit-content-{{ note.id }}" name="content" rows="3">
+{{ note.content }}</textarea
+    >
+  </label>
+  <div class="grid">
+    <button type="submit">Save</button>
+    <button
+      type="button"
+      class="secondary outline"
+      hx-get="/projects/{{ project.id }}/notes/list"
+      hx-target="#notes-container"
+      hx-swap="innerHTML"
+    >
+      Cancel
+    </button>
+  </div>
+</form>

@@ -5,6 +5,11 @@
     <p>{{ project.description or "No description yet." }}</p>
     <footer>
       <small>Created {{ project.created_at.strftime("%b %d, %Y") }}</small>
+      <div style="margin-top: 0.5rem">
+        <a href="/projects/{{ project.id }}" role="button" class="outline"
+          >Open project</a
+        >
+      </div>
     </footer>
   </article>
   {% else %}

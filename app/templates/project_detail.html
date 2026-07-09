@@ -1,0 +1,144 @@
+{% extends "base.html" %} {% block title %}{{ project.name }} – Research Vault{%
+endblock %} {% block content %}
+<a href="/dashboard">&larr; Back to projects</a>
+
+<hgroup>
+  <h2>{{ project.name }}</h2>
+  <h3>{{ project.description or "No description yet." }}</h3>
+</hgroup>
+
+<div role="tablist" class="project-tabs" aria-label="Project sections">
+  <button
+    type="button"
+    role="tab"
+    id="tab-notes"
+    class="tab-button"
+    aria-selected="true"
+    aria-controls="notes-panel"
+    data-tab-target="notes-panel"
+  >
+    Notes
+  </button>
+  <button
+    type="button"
+    role="tab"
+    id="tab-links"
+    class="tab-button"
+    aria-selected="false"
+    aria-controls="links-panel"
+    data-tab-target="links-panel"
+  >
+    Links
+  </button>
+  <button
+    type="button"
+    role="tab"
+    id="tab-tags"
+    class="tab-button"
+    aria-selected="false"
+    aria-controls="tags-panel"
+    data-tab-target="tags-panel"
+  >
+    Tags
+  </button>
+</div>
+
+<section id="notes-panel" role="tabpanel" aria-labelledby="tab-notes">
+  <form
+    hx-post="/projects/{{ project.id }}/notes"
+    hx-target="#notes-container"
+    hx-swap="innerHTML"
+    hx-on::after-request="if (event.detail.successful) this.reset()"
+    class="grid"
+    aria-label="Create a new note"
+  >
+    <input
+      type="text"
+      name="title"
+      placeholder="Note title"
+      required
+      aria-label="Note title"
+    />
+    <input
+      type="text"
+      name="content"
+      placeholder="Note content (optional)"
+      aria-label="Note content"
+    />
+    <button type="submit">Add note</button>
+  </form>
+
+  <div
+    id="notes-container"
+    hx-get="/projects/{{ project.id }}/notes/list"
+    hx-trigger="load"
+    hx-swap="innerHTML"
+  >
+    <p aria-busy="true">Loading notes…</p>
+  </div>
+</section>
+
+<section id="links-panel" role="tabpanel" aria-labelledby="tab-links" hidden>
+  <h4>Saved links</h4>
+  {% if links %}
+  <ul>
+    {% for link in links %}
+    <li>
+      <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
+        >{{ link.title }}</a
+      >
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">
+    No links yet. Saving links from search is coming in the next milestone.
+  </p>
+  {% endif %}
+</section>
+
+<section id="tags-panel" role="tabpanel" aria-labelledby="tab-tags" hidden>
+  <form
+    hx-post="/projects/{{ project.id }}/tags"
+    hx-target="#tags-container"
+    hx-swap="innerHTML"
+    hx-on::after-request="if (event.detail.successful) this.reset()"
+    class="grid"
+    aria-label="Create a new tag"
+  >
+    <input
+      type="text"
+      name="name"
+      placeholder="Tag name"
+      required
+      aria-label="Tag name"
+    />
+    <button type="submit">Add tag</button>
+  </form>
+
+  <div
+    id="tags-container"
+    hx-get="/projects/{{ project.id }}/tags/list"
+    hx-trigger="load"
+    hx-swap="innerHTML"
+  >
+    <p aria-busy="true">Loading tags…</p>
+  </div>
+</section>
+
+{% block extra_scripts %}
+<script>
+  document.querySelectorAll(".tab-button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".tab-button").forEach(function (b) {
+        b.setAttribute("aria-selected", "false");
+      });
+      document.querySelectorAll('[role="tabpanel"]').forEach(function (panel) {
+        panel.hidden = true;
+      });
+      btn.setAttribute("aria-selected", "true");
+      document.getElementById(btn.dataset.tabTarget).hidden = false;
+    });
+  });
+</script>
+{% endblock %} {% endblock %}

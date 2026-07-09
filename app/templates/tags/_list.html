@@ -1,0 +1,9 @@
+{% if error %}
+<p class="error-message" role="alert">{{ error }}</p>
+{% endif %} {% if tags %}
+<ul class="tags-list">
+  {% for tag in tags %} {% include "tags/_tag_item.html" %} {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No tags yet. Create one above.</p>
+{% endif %}
