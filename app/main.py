@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 
 from app.api.ui import router as ui_router
+from app.api.ui_project import router as ui_project_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.collected_search import router as collected_search_router
 from app.api.v1.links import router as links_router
@@ -53,6 +54,7 @@ app.include_router(v1_router)
 # ---------------------------------------------------------------------------
 
 app.include_router(ui_router)
+app.include_router(ui_project_router)
 
 
 @app.get("/health", tags=["health"])
