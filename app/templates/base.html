@@ -66,7 +66,7 @@
         font-weight: 600;
       }
 
-      /* Notes & tags */
+      /* Notes, links & tags */
       .note-item,
       .tag-item {
         border: 1px solid var(--pico-muted-border-color);
@@ -116,6 +116,78 @@
       }
       .muted {
         color: var(--pico-muted-color);
+      }
+
+      /* Search */
+      .search-box {
+        margin-block: 1.5rem;
+      }
+      .search-box form {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .search-box form input[type="search"] {
+        flex: 1;
+        margin-bottom: 0;
+      }
+      .search-box form button {
+        width: auto;
+        margin-bottom: 0;
+      }
+      #web-search-results article,
+      .collected-results article {
+        margin-block: 0.75rem;
+      }
+      #web-search-results form {
+        margin-top: 0.5rem;
+      }
+      #web-search-results form button {
+        width: auto;
+      }
+
+      /* Badges */
+      .status-badge,
+      .type-badge,
+      .engine-badge {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        display: inline-block;
+        margin-left: 0.5rem;
+        vertical-align: middle;
+        font-weight: 600;
+      }
+      .status-completed {
+        background: #d1f5db;
+        color: #0f6b2c;
+      }
+      .status-pending {
+        background: #fff3cd;
+        color: #8a6100;
+      }
+      .status-failed {
+        background: #fde2e1;
+        color: #a3271f;
+      }
+      .type-note {
+        background: #dbe9ff;
+        color: #1d4ed8;
+      }
+      .type-link {
+        background: #f1e3ff;
+        color: #7c3aed;
+      }
+      .engine-badge {
+        background: var(--pico-muted-border-color);
+        color: var(--pico-muted-color);
+        text-transform: none;
+      }
+      .saved-notice {
+        color: #0f6b2c;
+        font-weight: 600;
       }
     </style>
     {% block extra_head %}{% endblock %}

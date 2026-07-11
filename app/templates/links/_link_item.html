@@ -1,0 +1,84 @@
+<article class="note-item" id="link-{{ link.id }}">
+  <header>
+    <strong>{{ link.title }}</strong>
+    {% if link.extraction_status.value == "completed" %}
+    <span class="status-badge status-completed">Completed</span>
+    {% elif link.extraction_status.value == "failed" %}
+    <span class="status-badge status-failed">Failed</span>
+    {% else %}
+    <span class="status-badge status-pending">Pending</span>
+    {% endif %}
+  </header>
+
+  <p>
+    <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+      {{ link.url[:80] }}{% if link.url|length > 80 %}…{% endif %}
+    </a>
+  </p>
+
+  {% if link.snippet %}
+  <p class="muted">{{ link.snippet }}</p>
+  {% endif %}
+
+  <div class="note-tags" aria-label="Tags on this link">
+    {% for tag in link.tags %}
+    <span class="tag-badge secondary">{{ tag.name }}</span>
+    {% else %}
+    <span class="muted">No tags</span>
+    {% endfor %}
+  </div>
+
+  <div class="note-actions">
+    {% if link.extraction_status.value == "completed" %}
+    <button
+      type="button"
+      class="outline"
+      id="view-content-btn-{{ link.id }}"
+      hx-get="/projects/{{ project.id }}/links/{{ link.id }}/content"
+      hx-target="#link-content-{{ link.id }}"
+      hx-swap="innerHTML"
+      hx-on::after-request="
+          this.style.display='none';
+          document.getElementById('hide-content-btn-{{ link.id }}').style.display='inline-block';
+        "
+    >
+      View content
+    </button>
+    <button
+      type="button"
+      class="outline"
+      id="hide-content-btn-{{ link.id }}"
+      style="display: none"
+      onclick="
+          document.getElementById('link-content-{{ link.id }}').innerHTML='';
+          this.style.display='none';
+          document.getElementById('view-content-btn-{{ link.id }}').style.display='inline-block';
+        "
+    >
+      Hide content
+    </button>
+    {% elif link.extraction_status.value == "pending" %}
+    <button
+      type="button"
+      class="outline"
+      hx-get="/projects/{{ project.id }}/links/list"
+      hx-target="#links-container"
+      hx-swap="innerHTML"
+    >
+      Refresh status
+    </button>
+    {% endif %}
+    <button
+      type="button"
+      class="secondary outline"
+      hx-delete="/projects/{{ project.id }}/links/{{ link.id }}"
+      hx-target="closest .note-item"
+      hx-swap="outerHTML"
+      hx-confirm="Delete this saved link?"
+    >
+      Delete
+    </button>
+  </div>
+
+  <div id="link-content-{{ link.id }}"></div>
+</article>

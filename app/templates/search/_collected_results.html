@@ -1,0 +1,22 @@
+{% if q and results %}
+<div class="collected-results">
+  {% for result in results %}
+  <article>
+    <header>
+      <span class="type-badge type-{{ result.type }}">
+        {{ "Note" if result.type == "note" else "Link" }}
+      </span>
+      <strong>{{ result.title }}</strong>
+    </header>
+    {% if result.snippet %}
+    <p>{{ result.snippet }}</p>
+    {% endif %}
+    <footer>
+      <small class="muted">Relevance: {{ "%.3f"|format(result.rank) }}</small>
+    </footer>
+  </article>
+  {% endfor %}
+</div>
+{% elif q %}
+<p class="muted">No matches found for "{{ q }}".</p>
+{% endif %}

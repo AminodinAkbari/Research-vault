@@ -1,0 +1,36 @@
+{% if error %}
+<p class="error-message" role="alert">{{ error }}</p>
+{% endif %} {% if results %}
+<div class="web-results">
+  {% for result in results %}
+  <article>
+    <header>
+      <strong>{{ result.title }}</strong>
+      {% if result.engine %}<span class="engine-badge">{{ result.engine }}</span
+      >{% endif %}
+    </header>
+    {% if result.snippet %}
+    <p>{{ result.snippet }}</p>
+    {% endif %}
+    <p>
+      <a href="{{ result.url }}" target="_blank" rel="noopener noreferrer"
+        >{{ result.url }}</a
+      >
+    </p>
+    <form
+      hx-post="/projects/{{ project.id }}/links/save"
+      hx-target="this"
+      hx-swap="outerHTML"
+    >
+      <input type="hidden" name="url" value="{{ result.url }}" />
+      <input type="hidden" name="title" value="{{ result.title }}" />
+      <input type="hidden" name="snippet" value="{{ result.snippet }}" />
+      <input type="hidden" name="search_query" value="{{ query }}" />
+      <button type="submit" class="outline">Save</button>
+    </form>
+  </article>
+  {% endfor %}
+</div>
+{% elif not error %}
+<p class="muted">No results. Try a different search.</p>
+{% endif %}

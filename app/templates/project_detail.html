@@ -7,6 +7,24 @@ endblock %} {% block content %}
   <h3>{{ project.description or "No description yet." }}</h3>
 </hgroup>
 
+<section class="search-box" aria-label="Search your notes and links">
+  <form
+    hx-get="/projects/{{ project.id }}/search/collected"
+    hx-target="#collected-search-results"
+    hx-swap="innerHTML"
+    hx-trigger="submit, keyup changed delay:500ms from:input[name='q']"
+  >
+    <input
+      type="search"
+      name="q"
+      placeholder="Search notes &amp; links…"
+      aria-label="Full-text search"
+    />
+    <button type="submit">Search</button>
+  </form>
+  <div id="collected-search-results"></div>
+</section>
+
 <div role="tablist" class="project-tabs" aria-label="Project sections">
   <button
     type="button"
@@ -29,6 +47,17 @@ endblock %} {% block content %}
     data-tab-target="links-panel"
   >
     Links
+  </button>
+  <button
+    type="button"
+    role="tab"
+    id="tab-websearch"
+    class="tab-button"
+    aria-selected="false"
+    aria-controls="websearch-panel"
+    data-tab-target="websearch-panel"
+  >
+    Web Search
   </button>
   <button
     type="button"
@@ -79,22 +108,41 @@ endblock %} {% block content %}
 </section>
 
 <section id="links-panel" role="tabpanel" aria-labelledby="tab-links" hidden>
-  <h4>Saved links</h4>
-  {% if links %}
-  <ul>
-    {% for link in links %}
-    <li>
-      <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
-        >{{ link.title }}</a
-      >
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="muted">
-    No links yet. Saving links from search is coming in the next milestone.
-  </p>
-  {% endif %}
+  <p class="muted">Links saved from the Web Search tab show up here.</p>
+  <div
+    id="links-container"
+    hx-get="/projects/{{ project.id }}/links/list"
+    hx-trigger="load"
+    hx-swap="innerHTML"
+  >
+    <p aria-busy="true">Loading links…</p>
+  </div>
+</section>
+
+<section
+  id="websearch-panel"
+  role="tabpanel"
+  aria-labelledby="tab-websearch"
+  hidden
+>
+  <form
+    hx-post="/projects/{{ project.id }}/search/web"
+    hx-target="#web-search-results"
+    hx-swap="innerHTML"
+    class="grid"
+    aria-label="Search the web"
+  >
+    <input
+      type="search"
+      name="query"
+      placeholder="Search the web…"
+      required
+      aria-label="Web search query"
+    />
+    <button type="submit">Search</button>
+  </form>
+
+  <div id="web-search-results"></div>
 </section>
 
 <section id="tags-panel" role="tabpanel" aria-labelledby="tab-tags" hidden>
