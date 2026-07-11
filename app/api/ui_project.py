@@ -11,9 +11,13 @@ from app.core.templates import templates
 from app.db.session import get_db
 from app.models.project import Project
 from app.models.user import User
+
+from app.services import collected_search as collected_search_service
+
 from app.services import link as link_service
 from app.services import note as note_service
 from app.services import tag as tag_service
+from app.services.searxng import search_searxng
 
 # include_in_schema=False keeps these HTML fragment/page routes out of the
 # OpenAPI/Swagger docs, which describe the JSON API only.
@@ -266,3 +270,141 @@ async def delete_tag_ui(
         raise HTTPException(status_code=404, detail="Tag not found") from exc
 
     return Response(status_code=status.HTTP_200_OK, content="")
+
+
+# ---------------------------------------------------------------------------
+# Saved links
+# ---------------------------------------------------------------------------
+
+
+@router.get("/projects/{project_id}/links/list", response_class=HTMLResponse)
+async def list_links_ui(
+    request: Request,
+    project: Project = Depends(get_current_project_from_cookie),
+    db: AsyncSession = Depends(get_db),
+):
+    links = await link_service.list_links(db, project_id=project.id)
+    return templates.TemplateResponse(
+        "links/_list.html",
+        name="links/_list.html",
+        context= {"request": request, "project": project, "links": links}
+    )
+
+
+@router.get("/projects/{project_id}/links/{link_id}/content", response_class=HTMLResponse)
+async def link_content_ui(
+    request: Request,
+    link_id: uuid.UUID,
+    project: Project = Depends(get_current_project_from_cookie),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        link = await link_service.get_link(db, project_id=project.id, link_id=link_id)
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Link not found") from exc
+
+    return templates.TemplateResponse(
+        "links/_extracted_content.html",
+        name="links/_extracted_content.html",
+        context= {"request": request, "link": link}
+    )
+
+
+@router.delete("/projects/{project_id}/links/{link_id}")
+async def delete_link_ui(
+    link_id: uuid.UUID,
+    project: Project = Depends(get_current_project_from_cookie),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    try:
+        await link_service.delete_link(db, project_id=project.id, link_id=link_id)
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Link not found") from exc
+
+    # Same pattern as note delete: empty 200 body, HTMX removes the element
+    # it was targeting (closest .note-item, outerHTML swap).
+    return Response(status_code=status.HTTP_200_OK, content="")
+
+
+# ---------------------------------------------------------------------------
+# Web search (SearXNG) + saving results as links
+# ---------------------------------------------------------------------------
+
+
+@router.post("/projects/{project_id}/search/web", response_class=HTMLResponse)
+async def web_search_ui(
+    request: Request,
+    query: str = Form(...),
+    project: Project = Depends(get_current_project_from_cookie),
+):
+    clean_query = query.strip()
+    error: str | None = None
+    results = []
+
+    if clean_query:
+        try:
+            results = await search_searxng(clean_query)
+        except HTTPException as exc:
+            error = str(exc.detail)
+    else:
+        error = "Enter a search term."
+
+    return templates.TemplateResponse(
+        "search/_web_results.html",
+        name="search/_web_results.html",
+        context = {
+            "request": request,
+            "project": project,
+            "results": results,
+            "query": clean_query,
+            "error": error,
+        },
+    )
+
+
+@router.post("/projects/{project_id}/links/save", response_class=HTMLResponse)
+async def save_link_ui(
+    request: Request,
+    url: str = Form(...),
+    title: str = Form(...),
+    snippet: str = Form(""),
+    search_query: str = Form(""),
+    project: Project = Depends(get_current_project_from_cookie),
+    db: AsyncSession = Depends(get_db),
+):
+    await link_service.create_link(
+        db,
+        project_id=project.id,
+        url=url,
+        title=title,
+        snippet=snippet,
+        search_query=search_query.strip() or None,
+    )
+    return templates.TemplateResponse(
+        "search/_link_saved.html",
+        name="search/_link_saved.html",
+        context = {"request": request}
+    )
+
+
+# ---------------------------------------------------------------------------
+# Full-text search across notes & links
+# ---------------------------------------------------------------------------
+
+
+@router.get("/projects/{project_id}/search/collected", response_class=HTMLResponse)
+async def collected_search_ui(
+    request: Request,
+    q: str = "",
+    project: Project = Depends(get_current_project_from_cookie),
+    db: AsyncSession = Depends(get_db),
+):
+    clean_q = q.strip()
+    results = await collected_search_service.search_collected(
+        db, project_id=project.id, q=clean_q
+    )
+    return templates.TemplateResponse(
+        "search/_collected_results.html",
+        name="search/_collected_results.html",
+        context = {"request": request, "project": project, "results": results, "q": clean_q},
+    )
