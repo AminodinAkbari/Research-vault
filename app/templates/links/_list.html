@@ -1,0 +1,6 @@
+{% if links %} {% for link in links %} {% include "links/_link_item.html" %} {%
+endfor %} {% else %}
+<p class="muted">
+  No links saved yet. Use the Web Search tab to find and save some.
+</p>
+{% endif %}

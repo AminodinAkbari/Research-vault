@@ -1,0 +1,9 @@
+{% if link.extracted_content %}
+<article>
+  <pre style="white-space: pre-wrap; max-height: 320px; overflow-y: auto">
+{{ link.extracted_content }}</pre
+  >
+</article>
+{% else %}
+<p class="muted">No extracted content available yet.</p>
+{% endif %}
