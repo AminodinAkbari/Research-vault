@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
+from sqlalchemy.orm import configure_mappers
 
 from app.api.ui import router as ui_router
 from app.api.ui_project import router as ui_project_router
@@ -15,6 +16,13 @@ from app.api.v1.tags import router as tags_router
 from app.core.templates import templates  # noqa: F401  (canonical Jinja2Templates instance)
 from app.db.base import Base
 from app.db.session import engine
+
+# Import every model before configuring mappers so relationship() strings
+# (e.g. "SavedLink" on Note.source_link) can resolve, and so any broken
+# relationship raises here at import time instead of lazily on first query.
+import app.models  # noqa: E402,F401
+
+configure_mappers()
 
 
 @asynccontextmanager
