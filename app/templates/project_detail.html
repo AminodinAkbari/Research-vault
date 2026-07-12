@@ -25,6 +25,8 @@ endblock %} {% block content %}
   <div id="collected-search-results"></div>
 </section>
 
+<div id="tag-filter-results" aria-live="polite"></div>
+
 <div role="tablist" class="project-tabs" aria-label="Project sections">
   <button
     type="button"
@@ -94,7 +96,15 @@ endblock %} {% block content %}
       placeholder="Note content (optional)"
       aria-label="Note content"
     />
-    <button type="submit">Add note</button>
+  <select name="source_link_id" aria-label="Source link (optional)">
+    <option value="">No source link</option>
+    {% for link in links %}
+    <option value="{{ link.id }}" {% if selected_source_link_id and selected_source_link_id == link.id|string %}selected{% endif %}>
+      {{ link.title }}
+    </option>
+    {% endfor %}
+  </select>
+  <button type="submit">Add note</button>
   </form>
 
   <div

@@ -87,6 +87,28 @@
         width: auto;
         display: inline-block;
       }
+      a.tag-badge {
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .tag-badge-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15rem;
+      }
+      .tag-remove {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 0.75rem;
+        padding: 0 0.25rem;
+        color: var(--pico-muted-color);
+        width: auto;
+      }
+      .tag-name-link {
+        font-weight: 600;
+        text-decoration: none;
+      }
       .tag-picker {
         display: flex;
         flex-wrap: wrap;
@@ -94,12 +116,12 @@
         margin-top: 0.5rem;
       }
       .note-actions {
-        display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
         margin-top: 0.5rem;
       }
-      .note-actions button {
+      .note-actions button,
+      .note-actions a[role="button"] {
         width: auto;
       }
       .tags-list {
@@ -145,6 +167,12 @@
       #web-search-results form button {
         width: auto;
       }
+      #tag-filter-results {
+        margin-block: 1rem;
+      }
+      #tag-filter-results:empty {
+        margin: 0;
+      }
 
       /* Badges */
       .status-badge,
@@ -188,6 +216,40 @@
       .saved-notice {
         color: #0f6b2c;
         font-weight: 600;
+      }
+
+      /* Reader mode */
+      .reader-container {
+        max-width: 70ch;
+        margin-inline: auto;
+      }
+      .reader-article {
+        white-space: pre-wrap;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.15rem;
+        line-height: 1.75;
+        margin-block: 1.5rem;
+      }
+      .highlights-panel {
+        margin-top: 2rem;
+        border-top: 1px solid var(--pico-muted-border-color);
+        padding-top: 1rem;
+      }
+      .highlights-list {
+        list-style: none;
+        padding: 0;
+      }
+      .highlight-item {
+        border-left: 3px solid var(--pico-primary);
+        padding: 0.5rem 0.75rem;
+        margin-block: 0.75rem;
+        background: rgba(0, 0, 0, 0.03);
+      }
+      .highlight-item blockquote {
+        margin: 0 0 0.5rem 0;
+      }
+      .highlight-item button {
+        width: auto;
       }
     </style>
     {% block extra_head %}{% endblock %}
