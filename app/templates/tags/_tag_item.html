@@ -1,5 +1,13 @@
 <li class="tag-item" id="tag-{{ tag.id }}">
-  <span>{{ tag.name }}</span>
+  <a
+    href="#"
+    class="tag-name-link"
+    hx-get="/projects/{{ project.id }}/tags/{{ tag.id }}/items"
+    hx-target="#tag-filter-results"
+    hx-swap="innerHTML"
+    onclick="return false;"
+    >{{ tag.name }}
+  </a>
   <button
     type="button"
     class="secondary outline"
