@@ -17,7 +17,7 @@ class NoteNotFoundError(Exception):
 def _note_select():
     return (
         select(Note)
-        .options(selectinload(Note.tags))
+        .options(selectinload(Note.tags), selectinload(Note.source_link))
         .execution_options(populate_existing=True)
     )
 
@@ -46,8 +46,14 @@ async def create_note(
     title: str,
     content: str = "",
     tag_ids: list[uuid.UUID] | None = None,
+    source_link_id: uuid.UUID | None = None,
 ) -> Note:
-    note = Note(project_id=project_id, title=title, content=content)
+    note = Note(
+        project_id=project_id,
+        title=title,
+        content=content,
+        source_link_id=source_link_id,
+    )
     db.add(note)
     await db.flush()
 
