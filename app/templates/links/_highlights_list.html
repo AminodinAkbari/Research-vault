@@ -1,0 +1,24 @@
+{% if highlights %}
+<ul class="highlights-list">
+  {% for highlight in highlights %}
+  <li class="highlight-item" id="highlight-{{ highlight.id }}">
+    <blockquote>{{ highlight.selected_text }}</blockquote>
+    {% if highlight.annotation %}
+    <p class="muted">{{ highlight.annotation }}</p>
+    {% endif %}
+    <button
+      type="button"
+      class="secondary outline"
+      hx-delete="/projects/{{ project.id }}/links/{{ link.id }}/highlights/{{ highlight.id }}"
+      hx-target="closest .highlight-item"
+      hx-swap="outerHTML"
+      hx-confirm="Remove this highlight?"
+    >
+      Remove
+    </button>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No highlights yet.</p>
+{% endif %}
