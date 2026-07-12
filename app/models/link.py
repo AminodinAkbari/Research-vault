@@ -80,6 +80,12 @@ class SavedLink(Base):
         viewonly=True,
         lazy="select",
     )
+    highlights: Mapped[list[Highlight]] = relationship(
+        "Highlight",
+        back_populates="link",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
 
     def __repr__(self) -> str:
         return f"<SavedLink id={self.id} url={self.url!r}>"
