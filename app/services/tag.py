@@ -4,8 +4,11 @@ import uuid
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.models.tag import Tag
+from app.models.link import SavedLink
+from app.models.note import Note
+from app.models.tag import LinkTag, NoteTag, Tag
 
 
 class TagNotFoundError(Exception):
@@ -47,3 +50,32 @@ async def delete_tag(db: AsyncSession, *, project_id: uuid.UUID, tag_id: uuid.UU
     tag = await get_tag(db, project_id=project_id, tag_id=tag_id)
     await db.delete(tag)
     await db.flush()
+
+
+async def get_tagged_items(
+    db: AsyncSession, *, project_id: uuid.UUID, tag_id: uuid.UUID
+) -> tuple[list[Note], list[SavedLink]]:
+    """Return all notes and saved links within a project that carry the given tag.
+
+    Filters by project_id in addition to tag_id as defense-in-depth, even
+    though a tag can only ever be attached to items within its own project.
+    """
+    note_result = await db.execute(
+        select(Note)
+        .join(NoteTag, NoteTag.note_id == Note.id)
+        .where(NoteTag.tag_id == tag_id, Note.project_id == project_id)
+        .options(selectinload(Note.tags))
+        .order_by(Note.created_at.desc())
+    )
+    notes = list(note_result.scalars().all())
+
+    link_result = await db.execute(
+        select(SavedLink)
+        .join(LinkTag, LinkTag.link_id == SavedLink.id)
+        .where(LinkTag.tag_id == tag_id, SavedLink.project_id == project_id)
+        .options(selectinload(SavedLink.tags))
+        .order_by(SavedLink.created_at.desc())
+    )
+    links = list(link_result.scalars().all())
+
+    return notes, links
