@@ -29,6 +29,7 @@ async def create_highlight(
     annotation: str | None = None,
     start_offset: int = 0,
     end_offset: int = 0,
+    color: str | None = None,
 ) -> Highlight:
     highlight = Highlight(
         link_id=link_id,
@@ -36,6 +37,7 @@ async def create_highlight(
         annotation=annotation,
         start_offset=start_offset,
         end_offset=end_offset,
+        color=color,  
     )
     db.add(highlight)
     await db.flush()

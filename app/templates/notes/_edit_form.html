@@ -29,15 +29,7 @@
       {% for link in links %}
       <option
         value="{{ link.id }}"
-        {%
-        if
-        note.source_link_id
-        and
-        note.source_link_id=""
-        ="link.id"
-        %}selected{%
-        endif
-        %}
+        {% if note.source_link_id and note.source_link_id== "link.id" %} selected {% endif %}
       >
         {{ link.title }}
       </option>

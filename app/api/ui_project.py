@@ -51,7 +51,7 @@ async def project_detail_page(
             "current_user": current_user,
             "project": project,
             "links": links,
-            "selected_source_link_id": source_link_id,
+            "selected_source_link_id": str(source_link_id) if source_link_id else "",
         },
     )
 
@@ -244,8 +244,8 @@ async def detach_tag_from_note_ui(
         raise HTTPException(status_code=404, detail="Note not found") from exc
 
     return templates.TemplateResponse(
-        "notes/_note_item.html", 
-        name="notes/_note_item.html", 
+        "notes/_note_item.html",
+        name="notes/_note_item.html",
         context={"request": request, "project": project, "note": note}
     )
 
@@ -340,8 +340,8 @@ async def list_links_ui(
 ):
     links = await link_service.list_links(db, project_id=project.id)
     return templates.TemplateResponse(
-        "links/_list.html", 
-        name="links/_list.html", 
+        "links/_list.html",
+        name="links/_list.html",
         context={"request": request, "project": project, "links": links}
     )
 
@@ -465,6 +465,7 @@ async def create_highlight_ui(
     annotation: str = Form(""),
     start_offset: int = Form(0),
     end_offset: int = Form(0),
+    color: str = Form(None),
     project: Project = Depends(get_current_project_from_cookie),
     db: AsyncSession = Depends(get_db),
 ):
@@ -482,6 +483,7 @@ async def create_highlight_ui(
             annotation=annotation.strip() or None,
             start_offset=start_offset,
             end_offset=end_offset,
+            color=color,
         )
 
     highlights = await highlight_service.list_highlights(db, link_id=link.id)
@@ -595,5 +597,5 @@ async def collected_search_ui(
     return templates.TemplateResponse(
         "search/_collected_results.html",
         name="search/_collected_results.html",
-        conetxt={"request": request, "project": project, "results": results, "q": clean_q},
+        context={"request": request, "project": project, "results": results, "q": clean_q},
     )

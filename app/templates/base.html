@@ -251,6 +251,22 @@
       .highlight-item button {
         width: auto;
       }
+
+      /* CSS palette */
+      .highlight-swatch {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+        margin-right: 4px;
+      }
+      .highlight-swatch.selected {
+        border-color: #000;
+      }
+      /* -------------- */
+
     </style>
     {% block extra_head %}{% endblock %}
   </head>
