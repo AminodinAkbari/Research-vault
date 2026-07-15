@@ -2,11 +2,11 @@
   <header>
     <strong>{{ link.title }}</strong>
     {% if link.extraction_status.value == "completed" %}
-    <span class="status-badge status-completed">Completed</span>
+      <span class="status-badge status-completed">Completed</span>
     {% elif link.extraction_status.value == "failed" %}
-    <span class="status-badge status-failed">Failed</span>
+      <span class="status-badge status-failed">Failed</span>
     {% else %}
-    <span class="status-badge status-pending">Pending</span>
+      <span class="status-badge status-pending">Pending</span>
     {% endif %}
   </header>
 
@@ -16,58 +16,67 @@
     </a>
   </p>
 
-  {% if link.snippet %}
-  <p class="muted">{{ link.snippet }}</p>
-  {% endif %}
+  {% if link.snippet %}<p class="muted">{{ link.snippet }}</p>{% endif %}
 
   <div class="note-tags" aria-label="Tags on this link">
     {% for tag in link.tags %}
-    <span class="tag-badge secondary">{{ tag.name }}</span>
+      
+        href="#"
+        class="tag-badge secondary"
+        hx-get="/projects/{{ project.id }}/tags/{{ tag.id }}/items"
+        hx-target="#tag-filter-results"
+        hx-swap="innerHTML"
+        onclick="return false;"
+      >{{ tag.name }}</a>
     {% else %}
-    <span class="muted">No tags</span>
+      <span class="muted">No tags</span>
     {% endfor %}
   </div>
 
   <div class="note-actions">
+    <a href="/projects/{{ project.id }}/links/{{ link.id }}/read" role="button" class="outline">Read</a>
+
     {% if link.extraction_status.value == "completed" %}
-    <button
-      type="button"
-      class="outline"
-      id="view-content-btn-{{ link.id }}"
-      hx-get="/projects/{{ project.id }}/links/{{ link.id }}/content"
-      hx-target="#link-content-{{ link.id }}"
-      hx-swap="innerHTML"
-      hx-on::after-request="
+      <button
+        type="button"
+        class="outline"
+        id="view-content-btn-{{ link.id }}"
+        hx-get="/projects/{{ project.id }}/links/{{ link.id }}/content"
+        hx-target="#link-content-{{ link.id }}"
+        hx-swap="innerHTML"
+        hx-on::after-request="
           this.style.display='none';
           document.getElementById('hide-content-btn-{{ link.id }}').style.display='inline-block';
         "
-    >
-      View content
-    </button>
-    <button
-      type="button"
-      class="outline"
-      id="hide-content-btn-{{ link.id }}"
-      style="display: none"
-      onclick="
+      >
+        View content
+      </button>
+      <button
+        type="button"
+        class="outline"
+        id="hide-content-btn-{{ link.id }}"
+        style="display:none;"
+        onclick="
           document.getElementById('link-content-{{ link.id }}').innerHTML='';
           this.style.display='none';
           document.getElementById('view-content-btn-{{ link.id }}').style.display='inline-block';
         "
-    >
-      Hide content
-    </button>
-    {% elif link.extraction_status.value == "pending" %}
+      >
+        Hide content
+      </button>
+    {% endif %}
+
     <button
       type="button"
       class="outline"
-      hx-get="/projects/{{ project.id }}/links/list"
-      hx-target="#links-container"
-      hx-swap="innerHTML"
+      hx-post="/projects/{{ project.id }}/links/{{ link.id }}/extract"
+      hx-target="closest .note-item"
+      hx-swap="outerHTML"
+      {% if link.extraction_status.value == "pending" %}disabled aria-busy="true"{% endif %}
     >
-      Refresh status
+      {% if link.extraction_status.value == "pending" %}Extracting…{% else %}Re-extract{% endif %}
     </button>
-    {% endif %}
+
     <button
       type="button"
       class="secondary outline"
@@ -81,4 +90,14 @@
   </div>
 
   <div id="link-content-{{ link.id }}"></div>
+
+  {% if link.extraction_status.value == "pending" %}
+    <div
+      hx-get="/projects/{{ project.id }}/links/{{ link.id }}"
+      hx-trigger="load delay:3s"
+      hx-target="closest .note-item"
+      hx-swap="outerHTML"
+      aria-hidden="true"
+    ></div>
+  {% endif %}
 </article>

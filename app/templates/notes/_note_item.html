@@ -10,18 +10,38 @@
     >{% endif %}
   </p>
 
+  {% if note.source_link %}
+  <p class="muted">
+    Source:
+    <a href="/projects/{{ project.id }}/links/{{ note.source_link.id }}/read"
+      >{{ note.source_link.title }}</a
+    >
+  </p>
+  {% endif %}
+
   <div class="note-tags" aria-label="Tags on this note">
     {% for tag in note.tags %}
-    <button
-      type="button"
-      class="tag-badge secondary"
-      hx-delete="/projects/{{ project.id }}/notes/{{ note.id }}/tags/{{ tag.id }}"
-      hx-target="closest .note-item"
-      hx-swap="outerHTML"
-      title='Remove tag "{{ tag.name }}"'
-    >
-      {{ tag.name }} &times;
-    </button>
+    <span class="tag-badge-group">
+      <button
+        class="tag-badge secondary"
+        hx-get="/projects/{{ project.id }}/tags/{{ tag.id }}/items"
+        hx-target="#tag-filter-results"
+        hx-swap="innerHTML"
+        onclick="return false;"
+      >
+        {{ tag.name }}
+        <button
+          type="button"
+          class="tag-remove"
+          hx-delete="/projects/{{ project.id }}/notes/{{ note.id }}/tags/{{ tag.id }}"
+          hx-target="closest .note-item"
+          hx-swap="outerHTML"
+          title='Remove tag "{{ tag.name }}"'
+        >
+          &times;
+        </button>
+      </button>
+    </span>
     {% else %}
     <span class="muted">No tags</span>
     {% endfor %}

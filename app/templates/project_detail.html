@@ -25,6 +25,8 @@ endblock %} {% block content %}
   <div id="collected-search-results"></div>
 </section>
 
+<div id="tag-filter-results" aria-live="polite"></div>
+
 <div role="tablist" class="project-tabs" aria-label="Project sections">
   <button
     type="button"
@@ -94,7 +96,15 @@ endblock %} {% block content %}
       placeholder="Note content (optional)"
       aria-label="Note content"
     />
-    <button type="submit">Add note</button>
+  <select name="source_link_id" aria-label="Source link (optional)">
+    <option value="">No source link</option>
+    {% for link in links %}
+    <option value="{{ link.id }}" {% if selected_source_link_id and selected_source_link_id == link.id|string %}selected{% endif %}>
+      {{ link.title }}
+    </option>
+    {% endfor %}
+  </select>
+  <button type="submit">Add note</button>
   </form>
 
   <div
@@ -188,5 +198,22 @@ endblock %} {% block content %}
       document.getElementById(btn.dataset.tabTarget).hidden = false;
     });
   });
+   // Open tab from URL hash on page load
+  (function() {
+    const hash = window.location.hash; // e.g. "#notes-panel"
+    if (!hash) return;
+    const targetPanelId = hash.substring(1); // "notes-panel"
+    const tabButton = document.querySelector(`[data-tab-target="${targetPanelId}"]`);
+    if (!tabButton) return;
+
+    // Reset all tabs
+    document.querySelectorAll('.tab-button').forEach(b => b.setAttribute('aria-selected', 'false'));
+    document.querySelectorAll('[role="tabpanel"]').forEach(p => p.hidden = true);
+
+    // Activate the target tab
+    tabButton.setAttribute('aria-selected', 'true');
+    const panel = document.getElementById(targetPanelId);
+    if (panel) panel.hidden = false;
+  })();
 </script>
 {% endblock %} {% endblock %}

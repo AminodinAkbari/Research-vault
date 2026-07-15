@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}{{ link.title }} – Reader – Research Vault{% endblock %}
+
+{% block content %}
+<div class="reader-container">
+  <p>
+    <a href="/projects/{{ project.id }}">&larr; Back to {{ project.name }}</a>
+    <a
+      href="/projects/{{ project.id }}?source_link_id={{ link.id }}#notes-panel"
+      role="button"
+      class="outline"
+      style="float: right"
+    >
+      + Add note about this
+    </a>
+  </p>
+
+  <h1>{{ link.title }}</h1>
+  <p class="muted">
+    <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.url }}</a>
+  </p>
+
+  {% if link.extraction_status.value == "completed" and link.extracted_content %}
+  <div id="reader-article" class="reader-article">
+    {{ link.extracted_content | safe }}
+  </div>
+  {% else %}
+  <p class="muted">Content not yet extracted.</p>
+  {% endif %}
+
+  <aside class="highlights-panel" aria-label="Highlights">
+    <h3>Highlights</h3>
+    <p class="muted">Select any text above to save it as a highlight.</p>
+    <div id="highlights-list">
+      {% include "links/_highlights_list.html" %}
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+
+  <script>
+    const colorMap = {
+    yellow: '#fff59d',
+    blue:   '#b3e5fc',
+    green:  '#c8e6c9',
+    orange: '#ffccbc',
+    purple: '#e1bee7',
+    grey:   '#f0f0f0',
+  };
+  const defaultColor = '#fff59d';
+
+  (function () {
+    const article = document.getElementById("reader-article");
+    if (!article) return;
+
+    // ---------- utility: compute character offset of a node + offset within the article ----------
+    function textNodesUnder(el) {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      return nodes;
+    }
+
+    function computeGlobalOffset(targetNode, offsetInNode) {
+      const allNodes = textNodesUnder(article);
+      let charCount = 0;
+      for (const node of allNodes) {
+        if (node === targetNode) {
+          return charCount + offsetInNode;
+        }
+        charCount += node.textContent.length;
+      }
+      return -1; // not found
+    }
+
+    // ---------- mark application / removal ----------
+    function clearAllMarks() {
+      article.querySelectorAll("mark.highlight").forEach(mark => {
+        const parent = mark.parentNode;
+        while (mark.firstChild) {
+          parent.insertBefore(mark.firstChild, mark);
+        }
+        parent.removeChild(mark);
+      });
+      // Normalize to merge adjacent text nodes
+      article.normalize();
+    }
+
+    function applyMarksFromList() {
+      clearAllMarks();
+      const items = document.querySelectorAll("#highlights-list .highlight-item");
+      if (items.length === 0) return;
+
+      const allNodes = textNodesUnder(article);
+      const totalLength = allNodes.reduce((sum, node) => sum + node.textContent.length, 0);
+      if (totalLength === 0) return;
+
+      // Build cumulative offsets (same as before)
+      const nodeStartPositions = [];
+      let cum = 0;
+      for (const node of allNodes) {
+        nodeStartPositions.push(cum);
+        cum += node.textContent.length;
+      }
+
+      // Sort items by start_offset descending so that modifications don't invalidate earlier offsets
+      const sortedItems = Array.from(items).sort((a, b) => {
+        const aStart = parseInt(a.dataset.startOffset, 10) || 0;
+        const bStart = parseInt(b.dataset.startOffset, 10) || 0;
+        return bStart - aStart; // descending
+      });
+
+      sortedItems.forEach(item => {
+        const start = parseInt(item.dataset.startOffset, 10);
+        const end = parseInt(item.dataset.endOffset, 10);
+        if (isNaN(start) || isNaN(end) || start >= end || start < 0 || end > totalLength) return;
+
+        // Recompute text nodes after each modification (because DOM has changed)
+        const currentNodes = textNodesUnder(article);
+        const currentNodeStartPositions = [];
+        let curCum = 0;
+        for (const node of currentNodes) {
+          currentNodeStartPositions.push(curCum);
+          curCum += node.textContent.length;
+        }
+
+        // Find start and end nodes in the current DOM
+        let startNodeIdx = 0;
+        while (startNodeIdx < currentNodes.length - 1 && currentNodeStartPositions[startNodeIdx + 1] <= start) {
+          startNodeIdx++;
+        }
+        let endNodeIdx = startNodeIdx;
+        while (endNodeIdx < currentNodes.length - 1 && currentNodeStartPositions[endNodeIdx + 1] <= end) {
+          endNodeIdx++;
+        }
+
+        const startNode = currentNodes[startNodeIdx];
+        const endNode = currentNodes[endNodeIdx];
+        const startOffsetInNode = start - currentNodeStartPositions[startNodeIdx];
+        const endOffsetInNode = end - currentNodeStartPositions[endNodeIdx];
+
+        // Safety check: if nodes are invalid, skip (should not happen with descending order)
+        if (!startNode.parentNode || !endNode.parentNode) return;
+
+        if (startNode === endNode) {
+          const mark = document.createElement("mark");
+          mark.className = "highlight";
+
+          const itemColor = item.dataset.color;
+          if (itemColor && colorMap[itemColor]) {
+            mark.style.backgroundColor = colorMap[itemColor];
+          } else {
+            mark.style.backgroundColor = defaultColor;
+          }
+          mark.dataset.highlightId = item.id?.replace("highlight-", "");
+
+          const beforeText = startNode.textContent.substring(0, startOffsetInNode);
+          const middleText = startNode.textContent.substring(startOffsetInNode, endOffsetInNode);
+          const afterText = startNode.textContent.substring(endOffsetInNode);
+
+          const beforeNode = document.createTextNode(beforeText);
+          const afterNode = document.createTextNode(afterText);
+          mark.textContent = middleText;
+
+          const parent = startNode.parentNode;
+          parent.insertBefore(beforeNode, startNode);
+          parent.insertBefore(mark, startNode);
+          parent.insertBefore(afterNode, startNode);
+          parent.removeChild(startNode);
+        } else {
+          const range = document.createRange();
+          range.setStart(startNode, startOffsetInNode);
+          range.setEnd(endNode, endOffsetInNode);
+          const mark = document.createElement("mark");
+          mark.className = "highlight";
+          mark.dataset.highlightId = item.id?.replace("highlight-", "");
+          range.surroundContents(mark);
+        }
+      });
+    }
+
+    // Apply on page load
+    applyMarksFromList();
+
+    // Reapply after any HTMX swap that updates the highlights list
+    document.body.addEventListener("htmx:afterSwap", function (evt) {
+      if (evt.detail.target.id === "highlights-list") {
+        applyMarksFromList();
+      }
+    });
+
+    // ---------- Popup logic ----------
+    function removePopup() {
+      const existing = document.getElementById("highlight-popup");
+      if (existing) existing.remove();
+    }
+
+    document.addEventListener("mousedown", function (event) {
+      const popup = document.getElementById("highlight-popup");
+      if (popup && !popup.contains(event.target)) {
+        popup.remove();
+      }
+    });
+
+    let lastSelectionRange = null; // store for instant marking after save
+
+    document.addEventListener("mouseup", function () {
+      const popup = document.getElementById("highlight-popup");
+      if (popup && popup.contains(event.target)) return;
+      if (popup) removePopup();
+
+      const selection = window.getSelection();
+      const text = selection ? selection.toString().trim() : "";
+      if (!text || !selection.anchorNode || !article.contains(selection.anchorNode)) return;
+
+      const range = selection.getRangeAt(0);
+      lastSelectionRange = range.cloneRange();
+      const rect = range.getBoundingClientRect();
+
+      // Compute global offsets within the article's raw text
+      const startOffset = computeGlobalOffset(range.startContainer, range.startOffset);
+      const endOffset = computeGlobalOffset(range.endContainer, range.endOffset);
+      if (startOffset === -1 || endOffset === -1) return;
+
+      const newPopup = document.createElement("form");
+      newPopup.id = "highlight-popup";
+      newPopup.style.position = "absolute";
+      newPopup.style.top = (window.scrollY + rect.bottom + 6) + "px";
+      newPopup.style.left = (window.scrollX + rect.left) + "px";
+      newPopup.style.zIndex = "1000";
+      newPopup.setAttribute(
+        "hx-post",
+        "/projects/{{ project.id }}/links/{{ link.id }}/highlights"
+      );
+      newPopup.setAttribute("hx-target", "#highlights-list");
+      newPopup.setAttribute("hx-swap", "innerHTML");
+
+      const escapedText = text.replace(/"/g, "&quot;");
+      newPopup.innerHTML =
+        '<article style="padding: 0.75rem; margin: 0; position: relative;">' +
+        '<input type="hidden" name="selected_text" value="' + escapedText + '">' +
+        '<input type="hidden" name="start_offset" value="' + startOffset + '">' +
+        '<input type="hidden" name="end_offset" value="' + endOffset + '">' +
+        '<input type="text" name="annotation" placeholder="Add a note (optional)" style="margin-bottom: 0.5rem;" autocomplete="off">' +
+        
+        '<div style="display:flex; align-items:center; gap:4px; margin-top:0.5rem;">' +
+        '  <input type="hidden" name="color" id="highlight-color-input" value="">' +
+        '  <span class="highlight-swatch" style="background:#fff59d;" data-color="yellow" title="Yellow"></span>' +
+        '  <span class="highlight-swatch" style="background:#b3e5fc;" data-color="blue" title="Blue"></span>' +
+        '  <span class="highlight-swatch" style="background:#c8e6c9;" data-color="green" title="Green"></span>' +
+        '  <span class="highlight-swatch" style="background:#ffccbc;" data-color="orange" title="Orange"></span>' +
+        '  <span class="highlight-swatch" style="background:#e1bee7;" data-color="purple" title="Purple"></span>' +
+        '  <span class="highlight-swatch" style="background:#f0f0f0;" data-color="grey" title="Grey"></span>' +
+        '  <button type="submit" style="margin-left:auto;">Save</button>' +
+        '</div>' +
+
+        '<button type="button" onclick="this.closest(\'#highlight-popup\').remove()" style="margin-left:0.5rem; background:none; border:none; cursor:pointer;">✕</button>' +
+        '<div class="error-message" style="color:red; display:none;"></div>' +
+        "</article>";
+
+      document.body.appendChild(newPopup);
+        // Swatch click handlers
+        newPopup.querySelectorAll(".highlight-swatch").forEach(swatch => {
+          swatch.addEventListener("click", function(e) {
+            e.preventDefault();
+            // remove selected state from all swatches
+            newPopup.querySelectorAll(".highlight-swatch").forEach(s => s.classList.remove("selected"));
+            // mark clicked swatch as selected
+            this.classList.add("selected");
+            // set hidden color value
+            newPopup.querySelector("#highlight-color-input").value = this.dataset.color;
+            // submit the form
+            newPopup.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+          });
+        });
+      htmx.process(newPopup);
+
+      newPopup.addEventListener("htmx:afterRequest", function (evt) {
+        if (evt.detail.successful) {
+          // Instant visual feedback: wrap the previously stored selection with a temporary mark
+
+            if (lastSelectionRange) {
+                const selectedColor = newPopup.querySelector("#highlight-color-input")?.value;
+                const tempMark = document.createElement("mark");
+                tempMark.className = "highlight temp-highlight";
+                if (selectedColor && colorMap[selectedColor]) {
+                    tempMark.style.backgroundColor = colorMap[selectedColor];
+                } else {
+                    tempMark.style.backgroundColor = defaultColor;
+                }
+                try {
+                    lastSelectionRange.surroundContents(tempMark);
+                } catch (e) {
+                    // ignore if surroundContents fails
+                }
+                lastSelectionRange = null;
+            }
+          
+          // After the highlights list is updated (via hx-target), applyMarksFromList will clean up and reapply all marks.
+          setTimeout(removePopup, 500);
+        } else {
+          const errorDiv = newPopup.querySelector(".error-message");
+          if (errorDiv) {
+            errorDiv.style.display = "block";
+            errorDiv.textContent = "Failed to save highlight. Please try again.";
+          }
+        }
+      });
+    });
+  })();
+</script>
+{% endblock %}

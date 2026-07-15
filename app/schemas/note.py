@@ -15,9 +15,10 @@ class NoteBase(BaseModel):
 
 
 class NoteCreate(NoteBase):
-    """Payload for creating a note; optionally attach existing tag IDs."""
+    """Payload for creating a note; optionally attach existing tag IDs and a source link."""
 
     tag_ids: list[uuid.UUID] = []
+    source_link_id: Optional[uuid.UUID] = None
 
 
 class NoteUpdate(BaseModel):
@@ -26,6 +27,7 @@ class NoteUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     tag_ids: Optional[list[uuid.UUID]] = None
+    source_link_id: Optional[uuid.UUID] = None
 
 
 class NoteRead(NoteBase):
@@ -33,6 +35,7 @@ class NoteRead(NoteBase):
 
     id: uuid.UUID
     project_id: uuid.UUID
+    source_link_id: Optional[uuid.UUID] = None
     created_at: datetime
     updated_at: datetime
     tags: list[TagResponse] = []

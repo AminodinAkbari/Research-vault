@@ -28,6 +28,7 @@ async def create_note(
         title=payload.title,
         content=payload.content,
         tag_ids=payload.tag_ids,
+        source_link_id=payload.source_link_id,
     )
 
 

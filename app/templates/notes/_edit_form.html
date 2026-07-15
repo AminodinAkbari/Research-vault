@@ -22,6 +22,20 @@
 {{ note.content }}</textarea
     >
   </label>
+  <label for="edit-source-{{ note.id }}"
+    >Source link (optional)
+    <select id="edit-source-{{ note.id }}" name="source_link_id">
+      <option value="">No source link</option>
+      {% for link in links %}
+      <option
+        value="{{ link.id }}"
+        {% if note.source_link_id and note.source_link_id== "link.id" %} selected {% endif %}
+      >
+        {{ link.title }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
   <div class="grid">
     <button type="submit">Save</button>
     <button

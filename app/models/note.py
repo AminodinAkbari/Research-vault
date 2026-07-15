@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -30,6 +31,14 @@ class Note(Base):
         nullable=False,
         default="",
     )
+    # Optional reference to the saved link this note was written about.
+    # ON DELETE SET NULL: deleting the source link should not delete the note,
+    # just detach the reference.
+    source_link_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("saved_links.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         server_default=func.now(),
         nullable=False,
@@ -57,6 +66,15 @@ class Note(Base):
         "Tag",
         secondary="note_tags",
         viewonly=True,
+        lazy="select",
+    )
+    # Read-only convenience view onto the source link. Uses the class-name
+    # string ("SavedLink") and a string foreign_keys spec so this resolves
+    # purely through the declarative registry — no import of SavedLink
+    # needed here, and no dependency on forward-ref annotation evaluation.
+    source_link: Mapped[Optional["SavedLink"]] = relationship(
+        "SavedLink",
+        foreign_keys="Note.source_link_id",
         lazy="select",
     )
 
