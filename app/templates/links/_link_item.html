@@ -20,7 +20,7 @@
 
   <div class="note-tags" aria-label="Tags on this link">
     {% for tag in link.tags %}
-      
+      <a
         href="#"
         class="tag-badge secondary"
         hx-get="/projects/{{ project.id }}/tags/{{ tag.id }}/items"
