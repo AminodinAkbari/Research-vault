@@ -130,7 +130,7 @@ Soon we will have [HTMX](https://htmx.org/ "Click to see what is html") for a si
 - ~~Milestone 4~~ – Web search (SearXNG) and link saving ✓
 - ~~Milestone 5~~ – Asynchronous content extraction ✓
 - ~~Milestone 6~~ – Full‑text search and organization ✓
-- Creating basic UI -> `in progress`
+- ~~Creating basic UI~~ ✓
 
 I aim to complete a milestone every few days. Progress updates will land in the master branch.
 
