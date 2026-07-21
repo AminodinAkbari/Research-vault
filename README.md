@@ -1,5 +1,5 @@
 ![Stars](https://img.shields.io/github/stars/AminodinAkbari/Research-vault)
-![License](https://img.shields.io/github/license/AminodinAkbari/Research-vault)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Python](https://img.shields.io/badge/python-3.11+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-green)
 ![Docker](https://img.shields.io/badge/docker-ready-blue)
