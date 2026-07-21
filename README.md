@@ -1,3 +1,9 @@
+![Stars](https://img.shields.io/github/stars/AminodinAkbari/Research-vault)
+![License](https://img.shields.io/github/license/AminodinAkbari/Research-vault)
+![Python](https://img.shields.io/badge/python-3.11+-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-green)
+![Docker](https://img.shields.io/badge/docker-ready-blue)
+
 # Research Vault
 
 A self-hosted research and knowledge management platform you can run on your own machine. No AI, no cloud dependencies, no subscriptions. Just you, your ideas, and a clean API to organize them.
@@ -5,6 +11,8 @@ A self-hosted research and knowledge management platform you can run on your own
 > ⚠️ **Active development** – new features land every few days. Check back often or star the repo to follow along.
 
 ---
+
+⭐ If you find this useful, please consider starring the repo!
 
 ## What is this?
 
@@ -36,13 +44,27 @@ All of the following are implemented and tested:
 - **Full test suite** – async integration tests for all endpoints
 - **Docker Compose** – one command to start the whole stack
 
-### Coming soon
+## Coming soon
 
-- Web search via self‑hosted SearXNG
-- Save search results as links
-- Background content extraction from saved URLs
-- Full‑text search across your notes and saved pages
-- Advanced organization and bookmarking
+These features are planned or under active consideration.  
+They’re all designed to make research flow smoother without turning the app into something it’s not.
+
+### Upcoming features
+
+- **Markdown export (whole project)** – compile a project’s notes, saved links, highlights, and annotations into a single Markdown file. Great for archiving, sharing, or importing into other tools.
+- **Bulk tag operations** – select multiple notes and links to apply or remove tags in one go. Organise faster.
+- **Reading‑list statuses** – built‑in workflow states for links (e.g., “to‑read”, “reading”, “done”, “archived”). More than just tags – these can drive filtered views and reminders.
+- **Full‑text PDF / EPUB extraction** – expand the background extraction pipeline to handle PDFs and EPUBs, not just web pages. Your reading stays inside the vault.
+- **Progressive Web App (PWA)** – work offline on your mobile device and sync automatically when you’re back online. Read and annotate anywhere.
+
+### AI‑powered features (under consideration)
+
+All AI features are designed as **one‑shot helpers**, not chatbots. They’re there when you need them, invisible when you don’t.
+
+- **Tag suggestion** – when you save a link or write a note, the system can suggest relevant tags based on your existing vocabulary. You always approve or reject them.
+- **Smart summarisation** – a “Summarise this article” button that generates a short summary from the extracted content and saves it as a note, linked to the source.
+- **Semantic search** – optional upgrade to full‑text search that understands meaning, not just keywords. Still search, not conversation.
+- **“Explain this” highlight** – in the reader, select a passage and click “Explain this” to get a concise explanation saved as an annotation.
 
 ---
 
