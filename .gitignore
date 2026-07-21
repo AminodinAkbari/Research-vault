@@ -2,3 +2,6 @@
 .env
 .pytest_cache
 .venv
+/graphify-out
+AGENTS.md
+.opencode
