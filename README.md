@@ -45,8 +45,7 @@ All of the following are implemented and tested:
 - **Docker Compose** – one command to start the whole stack
 
 ## Coming soon
-
-These features are planned or under active consideration.  
+These features are planned or under active consideration.
 They’re all designed to make research flow smoother without turning the app into something it’s not.
 
 ### Upcoming features
@@ -137,10 +136,6 @@ Once the app is running:
 - Create a project with POST /api/v1/projects.
 - Inside that project, create notes with POST /api/v1/projects/{id}/notes.
 - Manage tags with the /tags endpoints, and attach them to notes.
-
-#### Everything is self‑explanatory through the docs. No separate frontend needed (Just yet !).
-
-Soon we will have [HTMX](https://htmx.org/ "Click to see what is html") for a simple UI ...
 
 ---
 
