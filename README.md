@@ -45,11 +45,13 @@ All of the following are implemented and tested:
 - **Docker Compose** – one command to start the whole stack
 
 ## Coming soon
+
 These features are planned or under active consideration.
 They’re all designed to make research flow smoother without turning the app into something it’s not.
 
 ### Upcoming features
 
+- **Research Kickstart** – type a topic you want to learn and get an AI‑generated roadmap with suggested search keywords, so you never start your research from scratch.
 - **Markdown export (whole project)** – compile a project’s notes, saved links, highlights, and annotations into a single Markdown file. Great for archiving, sharing, or importing into other tools.
 - **Bulk tag operations** – select multiple notes and links to apply or remove tags in one go. Organise faster.
 - **Reading‑list statuses** – built‑in workflow states for links (e.g., “to‑read”, “reading”, “done”, “archived”). More than just tags – these can drive filtered views and reminders.
@@ -60,6 +62,7 @@ They’re all designed to make research flow smoother without turning the app in
 
 All AI features are designed as **one‑shot helpers**, not chatbots. They’re there when you need them, invisible when you don’t.
 
+- 
 - **Tag suggestion** – when you save a link or write a note, the system can suggest relevant tags based on your existing vocabulary. You always approve or reject them.
 - **Smart summarisation** – a “Summarise this article” button that generates a short summary from the extracted content and saves it as a note, linked to the source.
 - **Semantic search** – optional upgrade to full‑text search that understands meaning, not just keywords. Still search, not conversation.
@@ -69,17 +72,17 @@ All AI features are designed as **one‑shot helpers**, not chatbots. They’re 
 
 ## Tech Stack
 
-| Layer            | Technology                                                    |
-| ---------------- | ------------------------------------------------------------- |
-| API framework    | FastAPI (async)                                               |
-| Database         | PostgreSQL 16 + SQLAlchemy 2.0 (async)                        |
-| Migrations       | Alembic                                                       |
-| Validation       | Pydantic v2                                                   |
-| Caching / broker | Redis                                                         |
-| Background tasks | Celery (using Redis as broker)                                |
-| Search engine    | SearXNG (self‑hosted)                                         |
-| Containerization | Docker Compose                                                |
-| Auth             | JWT via`python-jose`, password hashing with `passlib[bcrypt]` |
+| Layer                  | Technology                                                        |
+| ---------------------- | ----------------------------------------------------------------- |
+| API framework          | FastAPI (async)                                                   |
+| Database               | PostgreSQL 16 + SQLAlchemy 2.0 (async)                            |
+| Migrations             | Alembic                                                           |
+| Validation             | Pydantic v2                                                       |
+| Caching / broker       | Redis                                                             |
+| Background tasks       | Celery (using Redis as broker)                                    |
+| Search engine          | SearXNG (self‑hosted)                                            |
+| Containerization<br /> | Docker Compose                                                    |
+| Auth                   | JWT via`python-jose`, password hashing with `passlib[bcrypt]` |
 
 ---
 
