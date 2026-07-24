@@ -16,6 +16,7 @@ from app.services.auth import get_user_by_id
 # tokenUrl is used for OpenAPI/Swagger UI metadata only; the login endpoint
 # itself accepts a JSON body rather than an OAuth2 form.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 # Name of the httpOnly cookie set by /api/v1/auth/login and /api/v1/auth/register,
 # used by the server-rendered UI (app/api/ui.py, app/api/ui_project.py) to
@@ -102,7 +103,6 @@ async def get_current_project(
 # stay authenticated without any manual header wiring.
 # ---------------------------------------------------------------------------
 
-
 async def get_current_user_from_cookie(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -144,6 +144,60 @@ async def get_current_project_from_cookie(
     `project_service` used by the JSON API — no ownership logic duplicated.
 
     Raises 404 if the project doesn't exist, 403 if it belongs to someone else.
+    """
+    try:
+        return await project_service.get_owned_project(
+            db, project_id=project_id, user_id=current_user.id
+        )
+    except project_service.ProjectNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        ) from exc
+    except project_service.ProjectForbiddenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
+        ) from exc
+        
+# ---------------------------------------------------------------------------
+# Combined dependencies using `optional` oauth2 schema which can seen in "oauth2_scheme_optional" variable.
+# In these type of schemas, If authorization header not exists, API use access_token for verify users instead.
+# In this method, user still should be logged in"
+# ---------------------------------------------------------------------------
+
+
+async def get_current_user_combined(
+    request: Request,
+    token: str = Depends(oauth2_scheme_optional),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Combined auth: tries header-based auth first, falls back to cookie-based auth.
+
+    Used for API endpoints accessed via both API clients (Authorization header)
+    and browser navigation (access_token cookie), like file downloads.
+    """
+    user = await _resolve_user_from_token(token, db)
+    if user is not None:
+        return user
+
+    cookie_token = request.cookies.get(COOKIE_NAME)
+    user = await _resolve_user_from_token(cookie_token, db)
+    if user is not None:
+        return user
+
+    raise _credentials_exception
+
+
+async def get_current_project_combined(
+    project_id: uuid.UUID,
+    current_user: User = Depends(get_current_user_combined),
+    db: AsyncSession = Depends(get_db),
+) -> Project:
+    """Combined auth version of get_current_project: accepts both Authorization header and access_token cookie.
+
+    Use this on API endpoints that may be accessed via plain browser navigation
+    (e.g., file downloads via <a href>).
     """
     try:
         return await project_service.get_owned_project(
