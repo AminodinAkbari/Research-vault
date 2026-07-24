@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+import re
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_current_project, get_current_user
+from app.core.dependencies import get_current_project, get_current_project_combined, get_current_user
 from app.db.session import get_db
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
 from app.services import project as project_service
+
+from fastapi.responses import Response
+from app.db.session import get_db
+from app.services import export
 
 router = APIRouter()
 
@@ -62,3 +69,42 @@ async def delete_project(
 ) -> None:
     """Delete the current project and all of its notes, links, and tags."""
     await project_service.delete_project(db, project=project)
+
+
+def _slugify(name: str) -> str:
+    slug = re.sub(r"[^\w\s-]", "", name).strip().lower()
+    slug = re.sub(r"[-\s]+", "-", slug)
+    return slug or "project"
+
+
+@router.get("/{project_id}/export/markdown")
+async def export_project_markdown(
+    project: Project = Depends(get_current_project_combined),
+    session: AsyncSession = Depends(get_db),
+) -> Response:
+    """
+    Export a project's notes, saved links, and highlights as a single
+    downloadable Markdown file.
+
+    Auth/ownership is identical to every other `/projects/{project_id}/...`
+    endpoint: `get_current_project` accepts either the `Authorization:
+    Bearer` header or the `access_token` cookie, resolves the project, and
+    404s / 403s exactly like the rest of the API — nothing new to test there.
+    Because the cookie is accepted here too, the UI can link straight to
+    this endpoint with a plain `<a href>` (see templates/project_detail.html)
+    without a separate UI-only export route.
+
+    All the actual data-gathering and Markdown assembly lives in
+    `export.build_project_markdown` — this route is just the usual
+    thin adapter (call service, translate to an HTTP response).
+    """
+    markdown = await export.build_project_markdown(session, project=project)
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+    filename = f"{_slugify(project.name)}-{stamp}.md"
+
+    return Response(
+        content=markdown,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
