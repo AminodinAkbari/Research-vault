@@ -12,14 +12,15 @@ from app.api.v1.collected_search import router as collected_search_router
 from app.api.v1.links import router as links_router
 from app.api.v1.notes import router as notes_router
 from app.api.v1.projects import router as projects_router
+from app.api.v1.roadmap import router as roadmap_router
 from app.api.v1.tags import router as tags_router
 from app.core.templates import templates  # noqa: F401  (canonical Jinja2Templates instance)
 from app.db.base import Base
 from app.db.session import engine
 
 # Import every model before configuring mappers so relationship() strings
-# (e.g. "SavedLink" on Note.source_link) can resolve, and so any broken
-# relationship raises here at import time instead of lazily on first query.
+# resolve, and so any broken relationship raises here at import time instead
+# of lazily on first query.
 import app.models  # noqa: E402,F401
 
 configure_mappers()
@@ -55,6 +56,7 @@ v1_router.include_router(
     prefix="/projects/{project_id}",
     tags=["search"],
 )
+v1_router.include_router(roadmap_router, tags=["roadmap"])
 app.include_router(v1_router)
 
 # ---------------------------------------------------------------------------
