@@ -213,3 +213,21 @@ async def get_current_project_combined(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this project",
         ) from exc
+        
+async def get_optional_current_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """API auth dependency variant that does not require authentication.
+
+    Returns the current user if a valid `Authorization: Bearer <token>`
+    header is present, otherwise None instead of raising. Used by endpoints
+    that support both authenticated and anonymous callers — e.g.
+    POST /api/v1/roadmap, which rate-limits per user when authenticated and
+    falls back to per-IP limiting otherwise.
+    """
+    auth_header = request.headers.get("Authorization", "")
+    token: str | None = None
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[len("bearer "):].strip()
+    return await _resolve_user_from_token(token, db)
