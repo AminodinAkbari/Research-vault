@@ -3,11 +3,10 @@ from __future__ import annotations
 import json
 import re
 
-import httpx
-
 from app.core.config import settings
 from app.core.redis import redis_client
 from app.schemas.roadmap import RoadmapStep
+from app.services.ai import AIError, call_ai
 
 # Forces the model to return nothing but a bare JSON array — no prose, no
 # markdown fences, no wrapping object — so the response can be parsed
@@ -107,56 +106,6 @@ def _parse_roadmap(raw_text: str) -> list[RoadmapStep]:
         ) from exc
 
 
-async def _call_ai(subject: str) -> str:
-    """Call an OpenAI-compatible chat-completions endpoint (OpenRouter by
-    default) and return the raw text content of the model's reply.
-    """
-    if not settings.AI_API_KEY:
-        raise RoadmapGenerationError("The AI service is not configured.")
-
-    payload = {
-        "model": settings.AI_MODEL,
-        "messages": [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": f"Subject: {subject}"},
-        ],
-        "temperature": 0.3,
-    }
-    headers = {
-        "Authorization": f"Bearer {settings.AI_API_KEY}",
-        "Content-Type": "application/json",
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                f"{settings.AI_BASE_URL.rstrip('/')}/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            resp.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        raise RoadmapGenerationError(
-            f"The AI service returned an error: {exc.response.status_code}"
-        ) from exc
-    except httpx.RequestError as exc:
-        raise RoadmapGenerationError("The AI service is unavailable.") from exc
-
-    try:
-        body = resp.json()
-    except ValueError as exc:
-        raise RoadmapGenerationError("The AI service returned a non-JSON response.") from exc
-
-    try:
-        return body["choices"][0]["message"]["content"]
-    except (KeyError, IndexError, TypeError) as exc:
-        print("AI RESPONSE : " , body)
-        print("ERROR : ", exc)
-        raise RoadmapGenerationError(
-            "The AI service returned an unexpected response shape."
-        ) from exc
-
-
 async def generate_roadmap(subject: str) -> list[RoadmapStep]:
     """Call the AI service and parse its response into a roadmap.
 
@@ -165,13 +114,16 @@ async def generate_roadmap(subject: str) -> list[RoadmapStep]:
     failures) — those propagate immediately.
     """
     last_error: RoadmapParsingError | None = None
+    prompt = f"Subject: {subject}"
 
     for _ in range(_MAX_PARSE_RETRIES + 1):
-        raw_text = await _call_ai(subject)
+        try:
+            raw_text = await call_ai(prompt, system_prompt=_SYSTEM_PROMPT, temperature=0.3)
+        except AIError as exc:
+            raise RoadmapGenerationError(str(exc)) from exc
         try:
             return _parse_roadmap(raw_text)
         except RoadmapParsingError as exc:
-            print("ANOTHER ERROR HERE : " , exc)
             last_error = exc
             continue
 
