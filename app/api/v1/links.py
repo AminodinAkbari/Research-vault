@@ -150,7 +150,7 @@ async def explain_link_text(
 
     system_msg = "You are a helpful research assistant. Explain the following text in one or two concise sentences."
     try:
-        explanation = await call_ai(prompt=payload.selected_text, system_message=system_msg)
+        explanation = await call_ai(payload.selected_text, system_prompt=system_msg)
     except AIError:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
