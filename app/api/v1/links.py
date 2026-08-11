@@ -11,8 +11,11 @@ from app.models.project import Project
 from app.schemas.link import SavedLinkCreate, SavedLinkRead
 from app.schemas.search import SearchQuery, SearchResult
 from app.schemas.tag import TagAttachRequest
+from app.schemas.highlights import ExplainRequest, HighlightRead
 from app.services import link as link_service
+from app.services import highlight as highlight_service
 from app.services.searxng import search_searxng
+from app.services.ai import call_ai, AIError
 
 router = APIRouter()
 
@@ -128,3 +131,43 @@ async def detach_tag_from_link(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Link not found"
         ) from exc
+
+
+@router.post("/links/{link_id}/explain", response_model=list[HighlightRead])
+async def explain_link_text(
+    link_id: uuid.UUID,
+    payload: ExplainRequest,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> list[HighlightRead]:
+    """Generates an AI explanation for selected text and saves it as a highlight."""
+    try:
+        link = await link_service.get_link(db, project_id=project.id, link_id=link_id)
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Link not found"
+        ) from exc
+
+    system_msg = "You are a helpful research assistant. Explain the following text in one or two concise sentences."
+    try:
+        explanation = await call_ai(prompt=payload.selected_text, system_message=system_msg)
+    except AIError:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI explanation service unavailable"
+        )
+
+    if not explanation:
+        explanation = "Could not generate explanation."
+
+    await highlight_service.create_highlight(
+        db,
+        link_id=link.id,
+        selected_text=payload.selected_text,
+        annotation=explanation,
+        start_offset=payload.start_offset,
+        end_offset=payload.end_offset,
+        color="yellow"
+    )
+
+    return await highlight_service.list_highlights(db, link_id=link.id)
