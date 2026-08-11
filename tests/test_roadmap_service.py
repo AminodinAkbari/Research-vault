@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from unittest.mock import AsyncMock, patch
 
-import httpx
 import pytest
 
 from app.schemas.roadmap import RoadmapStep
+from app.services.ai import AIError
 from app.services import roadmap as roadmap_service
 from tests.fake_redis import FakeAsyncRedis
 
@@ -80,7 +80,7 @@ def test_parse_roadmap_missing_keywords_defaults_to_empty_list() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_roadmap_succeeds_on_first_try() -> None:
-    with patch("app.services.roadmap._call_ai", new_callable=AsyncMock) as mock_call_ai:
+    with patch("app.services.roadmap.call_ai", new_callable=AsyncMock) as mock_call_ai:
         mock_call_ai.return_value = VALID_ROADMAP_JSON
         steps = await roadmap_service.generate_roadmap("linux")
 
@@ -90,7 +90,7 @@ async def test_generate_roadmap_succeeds_on_first_try() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_roadmap_retries_once_on_invalid_json() -> None:
-    with patch("app.services.roadmap._call_ai", new_callable=AsyncMock) as mock_call_ai:
+    with patch("app.services.roadmap.call_ai", new_callable=AsyncMock) as mock_call_ai:
         mock_call_ai.side_effect = ["not valid json", VALID_ROADMAP_JSON]
         steps = await roadmap_service.generate_roadmap("linux")
 
@@ -100,7 +100,7 @@ async def test_generate_roadmap_retries_once_on_invalid_json() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_roadmap_raises_after_exhausting_retry() -> None:
-    with patch("app.services.roadmap._call_ai", new_callable=AsyncMock) as mock_call_ai:
+    with patch("app.services.roadmap.call_ai", new_callable=AsyncMock) as mock_call_ai:
         mock_call_ai.side_effect = ["still not json", "still not json either"]
         with pytest.raises(roadmap_service.RoadmapParsingError):
             await roadmap_service.generate_roadmap("linux")
@@ -110,64 +110,23 @@ async def test_generate_roadmap_raises_after_exhausting_retry() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_roadmap_does_not_retry_on_generation_error() -> None:
-    with patch("app.services.roadmap._call_ai", new_callable=AsyncMock) as mock_call_ai:
-        mock_call_ai.side_effect = roadmap_service.RoadmapGenerationError("down")
+    with patch("app.services.roadmap.call_ai", new_callable=AsyncMock) as mock_call_ai:
+        mock_call_ai.side_effect = AIError("down")
         with pytest.raises(roadmap_service.RoadmapGenerationError):
             await roadmap_service.generate_roadmap("linux")
 
     mock_call_ai.assert_called_once()
 
 
-# ---------------------------------------------------------------------------
-# _call_ai
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
-async def test_call_ai_raises_when_not_configured(monkeypatch) -> None:
-    monkeypatch.setattr(roadmap_service.settings, "AI_API_KEY", "")
-    with pytest.raises(roadmap_service.RoadmapGenerationError):
-        await roadmap_service._call_ai("linux")
+async def test_generate_roadmap_passes_system_and_user_prompt() -> None:
+    with patch("app.services.roadmap.call_ai", new_callable=AsyncMock) as mock_call_ai:
+        mock_call_ai.return_value = VALID_ROADMAP_JSON
+        await roadmap_service.generate_roadmap("linux")
 
-
-@pytest.mark.asyncio
-async def test_call_ai_raises_on_http_error(monkeypatch) -> None:
-    monkeypatch.setattr(roadmap_service.settings, "AI_API_KEY", "test-key")
-
-    class _FailingClient:
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *exc):
-            return False
-
-        async def post(self, *args, **kwargs):
-            request = httpx.Request("POST", "https://example.com")
-            response = httpx.Response(502, request=request)
-            raise httpx.HTTPStatusError("boom", request=request, response=response)
-
-    with patch("app.services.roadmap.httpx.AsyncClient", return_value=_FailingClient()):
-        with pytest.raises(roadmap_service.RoadmapGenerationError):
-            await roadmap_service._call_ai("linux")
-
-
-@pytest.mark.asyncio
-async def test_call_ai_raises_on_connection_error(monkeypatch) -> None:
-    monkeypatch.setattr(roadmap_service.settings, "AI_API_KEY", "test-key")
-
-    class _UnreachableClient:
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *exc):
-            return False
-
-        async def post(self, *args, **kwargs):
-            raise httpx.ConnectError("connection refused")
-
-    with patch("app.services.roadmap.httpx.AsyncClient", return_value=_UnreachableClient()):
-        with pytest.raises(roadmap_service.RoadmapGenerationError):
-            await roadmap_service._call_ai("linux")
+    args, kwargs = mock_call_ai.call_args
+    assert args[0] == "Subject: linux"
+    assert kwargs["system_prompt"] == roadmap_service._SYSTEM_PROMPT
 
 
 # ---------------------------------------------------------------------------
