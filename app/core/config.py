@@ -21,6 +21,21 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60
 
+    # AI roadmap generation — any OpenAI-compatible chat-completions API
+    # (defaults target OpenRouter, but any compatible base URL/model works).
+    # Left blank by default so the app still starts without it configured;
+    # the roadmap service raises a clear error at call time if it's unset.
+    AI_API_KEY: str = ""
+    AI_BASE_URL: str = "https://openrouter.ai/api/v1"
+    AI_MODEL: str = "openai/gpt-4o-mini"
+
+    # Roadmap response caching (Redis)
+    ROADMAP_CACHE_TTL_SECONDS: int = 3600
+
+    # Roadmap rate limiting (Redis, fixed window)
+    ROADMAP_RATE_LIMIT_MAX_REQUESTS: int = 5
+    ROADMAP_RATE_LIMIT_WINDOW_SECONDS: int = 60
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

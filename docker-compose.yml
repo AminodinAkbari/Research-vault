@@ -7,6 +7,13 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    # environment:
+    #   - HTTP_PROXY=socks5://host.docker.internal:12334
+    #   - HTTPS_PROXY=socks5://host.docker.internal:12334
+    #   - ALL_PROXY=socks5://host.docker.internal:12334
+    #   - NO_PROXY=localhost,127.0.0.1
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"  # Required for Linux
     depends_on:
       db:
         condition: service_healthy
