@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     # Left blank by default so the app still starts without it configured;
     # the roadmap service raises a clear error at call time if it's unset.
     AI_API_KEY: str = ""
-    AI_BASE_URL: str = "https://openrouter.ai/api/v1"
-    AI_MODEL: str = "openai/gpt-4o-mini"
+    AI_BASE_URL: str = "https://api-inference.huggingface.co/v1"
+    AI_MODEL: str = "deepseek-ai/DeepSeek-V3-0324"
 
     # Roadmap response caching (Redis)
     ROADMAP_CACHE_TTL_SECONDS: int = 3600
