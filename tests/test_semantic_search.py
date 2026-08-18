@@ -305,7 +305,7 @@ async def test_search_semantic_sends_note_title_and_content_to_ai(
         )
 
     prompt = mock_ai.call_args[0][0]
-    assert "Query: docker" in prompt
+    assert 'Query to match: "docker"' in prompt
     assert "Docker basics" in prompt
     assert "the full note body text" in prompt
 
@@ -314,6 +314,17 @@ async def test_search_semantic_sends_note_title_and_content_to_ai(
 async def test_search_semantic_truncates_link_extracted_content(
     client: AsyncClient, make_user, db_session: AsyncSession
 ) -> None:
+    """
+    Verify that a link's extracted content is correctly truncated to the 
+    `_LINK_CONTENT_CHARS` limit before being injected into the AI prompt.
+
+    Fun Fact: We use the `@` symbol to pad the content and count the length. 
+    Earlier iterations used "z" and "x", which failed hilariously because the 
+    test accidentally counted the literal letters inside the AI's prompt 
+    instructions (like the "z" in "Analyze" or the "x" in "text" and 
+    "explanations"). Using a non-alphabetic symbol prevents English 
+    vocabulary collisions!
+    """
     _, headers = await make_user()
     project_id = await _make_project(client, headers)
     link = await _make_link(
@@ -321,7 +332,8 @@ async def test_search_semantic_truncates_link_extracted_content(
     )
 
     row = await db_session.get(SavedLink, uuid.UUID(link["id"]))
-    row.extracted_content = "z" * 5000
+    # Changed "z" to "x" and now "@" to avoid colliding with the word "Analyze" or "text" in the prompt
+    row.extracted_content = "@" * 5000
     row.extraction_status = ExtractionStatus.completed
     await db_session.flush()
 
@@ -334,7 +346,7 @@ async def test_search_semantic_truncates_link_extracted_content(
         )
 
     prompt = mock_ai.call_args[0][0]
-    assert prompt.count("z") == semantic_search_service._LINK_CONTENT_CHARS
+    assert prompt.count("@") == semantic_search_service._LINK_CONTENT_CHARS
 
 
 # ---------------------------------------------------------------------------
