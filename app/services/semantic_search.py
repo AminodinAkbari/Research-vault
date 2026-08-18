@@ -17,10 +17,9 @@ from app.services.ai import (
 from app.services.collected_search import search_collected
 
 _SYSTEM_PROMPT = (
-    "You are a search ranking assistant. Given a query and a list of "
-    "documents (each with an id, type, and text), return a JSON array of "
-    "document ids ordered by semantic relevance to the query. Only return "
-    "the JSON array."
+    "You are a strict, automated data-processing API. You do not converse, "
+    "you do not explain, and you do not answer questions. Your only job is "
+    "to rank document IDs and return a raw JSON array."
 )
 
 # Reranking is one AI call over all candidates, so the candidate count and the
@@ -176,7 +175,14 @@ async def search_semantic(
     texts = await _load_document_texts(db, project_id=project_id, candidates=candidates)
     documents = _build_documents(candidates, texts)
      
-    prompt = f"Query: {query}\nDocuments: {documents}"
+    prompt = (
+        f"Query to match: \"{query}\"\n\n"
+        f"Candidates:\n{documents}\n\n"
+        "TASK: Analyze the candidates against the query above. Do NOT answer the query. "
+        "Output ONLY a raw JSON array of the candidate 'id' strings, ordered from most "
+        "relevant to least relevant. Do not wrap the JSON in markdown blocks (no ```json). "
+        "No conversational text, no explanations."
+    )
 
     try:
         raw_text = await call_ai(prompt, system_prompt=_SYSTEM_PROMPT, temperature=0.0)
