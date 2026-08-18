@@ -120,7 +120,11 @@ async def search_collected(
 
     params = {"project_id": project_id, "q": q.strip(), "snippet_len": _SNIPPET_LENGTH}
     if _get_search_sql(db) is _SEARCH_SQL_SQLITE:
-        params["project_id"] = str(project_id)
+        # SQLAlchemy's Uuid type stores values as bare 32-char hex on SQLite
+        # (no dashes), and the raw DBAPI can't bind a uuid.UUID at all, so the
+        # comparison value has to be the hex form. Using str(project_id) here
+        # binds a dashed UUID that matches nothing.
+        params["project_id"] = project_id.hex
 
     result = await db.execute(
         _get_search_sql(db),
