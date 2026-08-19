@@ -8,12 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_current_project
 from app.db.session import get_db
 from app.models.project import Project
-from app.schemas.link import SavedLinkCreate, SavedLinkRead
+from app.schemas.link import SavedLinkCreate, SavedLinkRead, LinkSummaryResponse
 from app.schemas.search import SearchQuery, SearchResult
 from app.schemas.tag import TagAttachRequest
 from app.schemas.highlights import ExplainRequest, HighlightRead
 from app.services import link as link_service
 from app.services import highlight as highlight_service
+from app.services import summarisation as summarisation_service
 from app.services.searxng import search_searxng
 from app.services.ai import call_ai, AIError
 
@@ -171,3 +172,32 @@ async def explain_link_text(
     )
 
     return await highlight_service.list_highlights(db, link_id=link.id)
+
+@router.post("/links/{link_id}/summarise", response_model=LinkSummaryResponse)
+async def summarise_link_endpoint(
+    link_id: uuid.UUID,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> LinkSummaryResponse:
+    """Summarise a link's extracted content and save the summary to the link.
+
+    Raises 404 when the link isn't in this project, 400 when extraction hasn't
+    produced any content yet, and 502 when the AI service is unavailable.
+    """
+    try:
+        return await summarisation_service.summarise_link(
+            db, project_id=project.id, link_id=link_id
+        )
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Link not found"
+        ) from exc
+    except summarisation_service.LinkNotExtractedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    except summarisation_service.SummarisationFailedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Summarisation service unavailable",
+        ) from exc
