@@ -51,6 +51,10 @@ class SavedLink(Base):
         Text,
         nullable=True,
     )
+    summary: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+    )
     extraction_status: Mapped[ExtractionStatus] = mapped_column(
         SAEnum(ExtractionStatus, name="extraction_status", create_constraint=True),
         nullable=False,
