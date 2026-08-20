@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TagBase(BaseModel):
@@ -44,3 +44,15 @@ class TagAttachRequest(BaseModel):
     """Payload for attaching one or more tags to a note."""
 
     tag_ids: list[uuid.UUID]
+
+
+class TagSuggestionRequest(BaseModel):
+    """Payload for suggest-tags endpoints ."""
+
+    title: str | None = None
+    content: str
+    content_type: str
+
+class TagSuggestionResponse(BaseModel):
+    """AI-suggested tag names, always a subset of the project's existing tags."""
+    suggested_tags: list[str]
