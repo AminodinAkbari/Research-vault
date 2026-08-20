@@ -42,5 +42,10 @@ class SavedLinkRead(SavedLinkBase):
     extraction_status: ExtractionStatus
     created_at: datetime
     tags: list[TagResponse] = []
+    summary: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class LinkSummaryResponse(BaseModel): 
+    id: uuid.UUID
+    summary: str
