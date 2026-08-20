@@ -6,7 +6,13 @@ import re
 from app.core.config import settings
 from app.core.redis import redis_client
 from app.schemas.roadmap import RoadmapStep
-from app.services.ai import AIError, call_ai
+from app.services.ai import (
+    AIError,
+    AIResponseFormatError,
+    call_ai,
+    extract_json_array,
+    parse_json_array,
+)
 
 # Forces the model to return nothing but a bare JSON array — no prose, no
 # markdown fences, no wrapping object — so the response can be parsed
@@ -69,33 +75,19 @@ async def cache_roadmap(subject: str, steps: list[RoadmapStep]) -> None:
 
 
 def _extract_json_array(text: str) -> str:
-    """Best-effort extraction of a JSON array from the model's raw output,
-    in case it wraps the array in a markdown code fence or adds stray text
-    around it despite the system prompt's instructions.
+    """Thin alias for the shared helper in app.services.ai, kept so the
+    roadmap module reads self-contained. Parsing lives in one place.
     """
-    text = text.strip()
-
-    fence_match = re.search(r"```(?:json)?\s*(\[.*\])\s*```", text, re.DOTALL)
-    if fence_match:
-        return fence_match.group(1)
-
-    start = text.find("[")
-    end = text.rfind("]")
-    if start != -1 and end != -1 and end > start:
-        return text[start : end + 1]
-
-    return text
+    return extract_json_array(text)
 
 
 def _parse_roadmap(raw_text: str) -> list[RoadmapStep]:
-    candidate = _extract_json_array(raw_text)
-
     try:
-        data = json.loads(candidate)
-    except json.JSONDecodeError as exc:
-        raise RoadmapParsingError("The AI response was not valid JSON.") from exc
+        data = parse_json_array(raw_text)
+    except AIResponseFormatError as exc:
+        raise RoadmapParsingError(str(exc)) from exc
 
-    if not isinstance(data, list) or not data:
+    if not data:
         raise RoadmapParsingError("The AI response was not a non-empty JSON array.")
 
     try:
