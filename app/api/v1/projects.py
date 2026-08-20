@@ -11,7 +11,9 @@ from app.db.session import get_db
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
+from app.schemas.tag import TagSuggestionRequest, TagSuggestionResponse
 from app.services import project as project_service
+from app.services import tag_suggestion as tag_suggestion_service
 
 from fastapi.responses import Response
 from app.db.session import get_db
@@ -108,3 +110,25 @@ async def export_project_markdown(
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.post("/{project_id}/suggest-tags", response_model=TagSuggestionResponse)
+async def suggest_tags_endpoint(
+    payload: TagSuggestionRequest,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> TagSuggestionResponse:
+    """Suggest up to 3 of this project's existing tags for a piece of content.
+
+    Always 200: suggestion is advisory, so AI failures and unparsable
+    responses come back as an empty list rather than an error status.
+    """
+    suggested = await tag_suggestion_service.suggest_tags(
+        db,
+        project_id=project.id,
+        title=payload.title,
+        content=payload.content,
+        content_type=payload.content_type,
+    )
+    return TagSuggestionResponse(suggested_tags=suggested)
+
