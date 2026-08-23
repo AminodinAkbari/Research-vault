@@ -9,6 +9,8 @@ from app.core.dependencies import get_current_project
 from app.db.session import get_db
 from app.models.project import Project
 from app.schemas.link import SavedLinkCreate, SavedLinkRead, LinkSummaryResponse
+from app.schemas.bulk_tags import BulkTagsRequest, BulkTagsResponse
+from app.services import bulk_tags as bulk_tags_service
 from app.schemas.search import SearchQuery, SearchResult
 from app.schemas.tag import TagAttachRequest
 from app.schemas.highlights import ExplainRequest, HighlightRead
@@ -201,3 +203,39 @@ async def summarise_link_endpoint(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Summarisation service unavailable",
         ) from exc
+
+
+@router.post("/bulk-tags", response_model=BulkTagsResponse)
+async def bulk_tags(
+    payload: BulkTagsRequest,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> BulkTagsResponse:
+    """Add or remove one or more tags across multiple notes or links in a
+    single request. Idempotent: existing attachments are ignored on add and
+    missing ones on remove.
+
+    Raises 404 NOT FOUND when any item or tag is missing from this project;
+    422 UNPROCESSABLE ENTITY for invalid enum values.
+    """
+    try:
+        updated_items, applied_tags = await bulk_tags_service.bulk_apply_tags(
+            db,
+            project_id=project.id,
+            item_type=payload.item_type.value,
+            item_ids=payload.item_ids,
+            action=payload.action.value,
+            tag_ids=payload.tag_ids,
+        )
+    except (
+        bulk_tags_service.BulkTagsItemNotFoundError,
+        bulk_tags_service.BulkTagsTagNotFoundError,
+    ) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Item or tag not found"
+        ) from exc
+    return BulkTagsResponse(
+        updated_items=updated_items,
+        applied_tags=applied_tags,
+        action=payload.action,
+    )
