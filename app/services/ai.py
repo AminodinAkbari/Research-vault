@@ -1,27 +1,71 @@
-# filename: app/services/ai.py
 from __future__ import annotations
 
 import json
+import logging
+import os
 import re
 
+import httpx
 from huggingface_hub import AsyncInferenceClient
 from huggingface_hub.errors import HfHubHTTPError
 
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
+
 
 class AIError(Exception):
-    """Raised when the AI service is unconfigured, unreachable, errors out, or
-    returns a response we can't extract text from.
-    """
+    """Raised when the AI service is unconfigured, unreachable, or fails."""
 
 
 class AIResponseFormatError(ValueError):
-    """Raised when the AI responded, but its content isn't in the shape the
-    caller asked for (e.g. not a JSON array).
+    """Raised when the AI response is not formatted as expected."""
 
-    Distinct from AIError: the service worked, the content didn't.
-    """
+
+async def _call_huggingface(messages: list[dict[str, str]], temperature: float | None) -> str:
+    """Helper for Hugging Face."""
+    # Removed deprecated 'proxies' argument. Reads OS env vars automatically.
+    client = AsyncInferenceClient(
+        api_key=settings.HF_API_KEY,
+        provider="auto",
+    )
+    kwargs: dict[str, object] = {
+        "model": "deepseek-ai/DeepSeek-V3-0324",
+        "messages": messages,
+    }
+    if temperature is not None:
+        kwargs["temperature"] = temperature
+
+    completion = await client.chat.completions.create(**kwargs)
+    return completion.choices[0].message.content.strip()
+
+
+async def _call_openai_compatible(
+    base_url: str, api_key: str, model: str, messages: list[dict[str, str]], temperature: float | None
+) -> str:
+    """Helper for standard OpenAI-compatible endpoints."""
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload: dict[str, object] = {"model": model, "messages": messages}
+    if temperature is not None:
+        payload["temperature"] = temperature
+
+    # connect timeout (5s) ensures blocked endpoints fail quickly without hanging
+    timeout = httpx.Timeout(30.0, connect=5.0)
+
+    # Removed 'proxy=' argument. httpx reads OS env vars automatically.
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(
+            f"{base_url.rstrip('/')}/chat/completions",
+            json=payload,
+            headers=headers,
+        )
+        response.raise_for_status()
+
+    body = response.json()
+    return body["choices"][0]["message"]["content"].strip()
 
 
 async def call_ai(
@@ -30,61 +74,93 @@ async def call_ai(
     *,
     temperature: float | None = None,
 ) -> str:
-    """Call an OpenAI-compatible chat-completions endpoint using the Hugging Face
-    Inference Client.
-
-    This is the single shared entry point for every AI-backed feature.
-    """
-    if not settings.AI_API_KEY:
-        raise AIError("The AI service is not configured.")
-
+    """Waterfall routing across available AI providers."""
     messages: list[dict[str, str]] = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": user_prompt})
 
-    # Initialize the async client using the "auto" provider to bypass blocks
-    client = AsyncInferenceClient(
-        api_key=settings.AI_API_KEY,
-        provider="auto",
-    )
+    providers = []
 
-    kwargs: dict[str, object] = {
-        "model": settings.AI_MODEL,
-        "messages": messages,
-    }
-    if temperature is not None:
-        kwargs["temperature"] = temperature
+    # 1. OpenRouter (Primary if available)
+    if getattr(settings, "OPENROUTER_API_KEY", None):
+        providers.append({
+            "name": "OpenRouter",
+            "func": _call_openai_compatible,
+            "kwargs": {
+                "base_url": "https://openrouter.ai/api/v1",
+                "api_key": settings.OPENROUTER_API_KEY,
+                "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+                "messages": messages,
+                "temperature": temperature,
+            },
+        })
 
-    try:
-        completion = await client.chat.completions.create(**kwargs)
-        return completion.choices[0].message.content.strip()
-    except HfHubHTTPError as exc:
-        raise AIError(f"The AI service returned an error: {exc}") from exc
-    except Exception as exc:
-        # Catches timeouts, connection errors, or malformed data shapes
-        raise AIError(f"The AI service is unavailable or failed: {exc}") from exc
+    # 2. Hugging Face (Works directly without a proxy in many regions)
+    if getattr(settings, "HF_API_KEY", None):
+        providers.append({
+            "name": "HuggingFace",
+            "func": _call_huggingface,
+            "kwargs": {"messages": messages, "temperature": temperature},
+        })
+
+    # 3. Groq
+    if getattr(settings, "GROQ_API_KEY", None):
+        providers.append({
+            "name": "Groq",
+            "func": _call_openai_compatible,
+            "kwargs": {
+                "base_url": "https://api.groq.com/openai/v1",
+                "api_key": settings.GROQ_API_KEY,
+                "model": "llama-3.1-8b-instant",
+                "messages": messages,
+                "temperature": temperature,
+            },
+        })
+
+    if not providers:
+        raise AIError("No AI providers are configured. Please set at least one API key in your .env file.")
+
+    last_error = None
+    for provider in providers:
+        try:
+            logger.info(f"Attempting AI request with provider: {provider['name']}...")
+            
+            result = await provider["func"](**provider["kwargs"])
+            
+            logger.info(f"AI request successfully fulfilled by provider: {provider['name']}.")
+            return result
+            
+        except Exception as exc:
+            err_msg = str(exc).lower()
+            # Check if docker-compose injected the HTTP_PROXY. If not, suggest they uncomment it.
+            if not os.environ.get("HTTP_PROXY") and ("timeout" in err_msg or "connect" in err_msg):
+                logger.warning(
+                    f"\n⚠️  [{provider['name']}] Connection blocked or timed out!\n"
+                    f"This provider is likely blocking connections due to regional restrictions.\n"
+                    f"To bypass this, enable NekoRay/Hiddify with these steps:\n"
+                    f"  1. In your proxy client, set 'Listen Address' to 0.0.0.0 or enable 'Allow LAN'.\n"
+                    f"  2. Open your Ubuntu firewall: `sudo ufw allow 2080/tcp` (replace 2080 with your proxy port).\n"
+                    f"  3. Uncomment the HTTP_PROXY, HTTPS_PROXY, ALL_PROXY, and NO_PROXY lines in your docker-compose.yml.\n"
+                    f"  4. Recreate containers: docker compose down && docker compose up -d\n"
+                    f"Falling back to the next provider...\n"
+                )
+            else:
+                logger.warning(f"[{provider['name']}] failed: {exc}. Falling back to next provider...")
+                
+            last_error = exc
+            continue
+
+    raise AIError(f"All configured AI providers failed. Last error: {last_error}")
 
 
 # ---------------------------------------------------------------------------
-# Shared response parsing
-#
-# Every JSON-array-returning feature (roadmap, tag suggestion, semantic
-# reranking) hits the same two problems: models wrap the array in a markdown
-# fence, and they pad it with prose. These helpers live here so that parsing
-# logic exists in exactly one place alongside call_ai itself.
+# Shared response parsing helpers
 # ---------------------------------------------------------------------------
 
 
 def extract_json_array(text: str) -> str:
-    """Best-effort extraction of a JSON array from a model's raw output.
-
-    Handles markdown code fences and stray text around the array. Returns the
-    input unchanged when no array-looking substring is found, so the caller's
-    json.loads() produces the error.
-    """
     text = text.strip()
-
     fence_match = re.search(r"```(?:json)?\s*(\[.*\])\s*```", text, re.DOTALL)
     if fence_match:
         return fence_match.group(1)
@@ -98,17 +174,11 @@ def extract_json_array(text: str) -> str:
 
 
 def parse_json_array(raw_text: str) -> list:
-    """Parse a model response that is expected to be a JSON array.
-
-    Raises AIResponseFormatError if the text isn't valid JSON or isn't a list.
-    An empty array is valid — "no results" is a legitimate answer for tag
-    suggestion and reranking alike.
-    """
     candidate = extract_json_array(raw_text)
-
     try:
         data = json.loads(candidate)
     except json.JSONDecodeError as exc:
+        print("candidates: " , candidate)
         raise AIResponseFormatError("The AI response was not valid JSON.") from exc
 
     if not isinstance(data, list):
@@ -118,9 +188,4 @@ def parse_json_array(raw_text: str) -> list:
 
 
 def parse_json_string_array(raw_text: str) -> list[str]:
-    """Like parse_json_array, but keeps only the string elements.
-
-    Non-string entries (numbers, nested objects) are dropped rather than
-    raising, since a partially well-formed list is still usable.
-    """
     return [item for item in parse_json_array(raw_text) if isinstance(item, str)]
