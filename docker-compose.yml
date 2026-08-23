@@ -8,12 +8,13 @@ services:
     env_file:
       - .env
     # environment:
-    #   - HTTP_PROXY=socks5://host.docker.internal:12334
-    #   - HTTPS_PROXY=socks5://host.docker.internal:12334
-    #   - ALL_PROXY=socks5://host.docker.internal:12334
-    #   - NO_PROXY=localhost,127.0.0.1
-    # extra_hosts:
-    #   - "host.docker.internal:host-gateway"  # Required for Linux
+      # Use socks5h for remote DNS resolution to bypass censorship
+      # - HTTP_PROXY=http://host.docker.internal:2080
+      # - HTTPS_PROXY=http://host.docker.internal:2080
+      # - ALL_PROXY=http://host.docker.internal:2080
+      # - NO_PROXY=localhost,127.0.0.1,db,redis,searxng
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Required for Linux
     depends_on:
       db:
         condition: service_healthy
@@ -22,7 +23,6 @@ services:
       searxng:
         condition: service_started
     volumes:
-      # - ./app:/app/app
       - .:/app
     restart: unless-stopped
 
@@ -59,6 +59,13 @@ services:
       - "8080:8080"
     environment:
       - SEARXNG_SECRET=${SEARXNG_SECRET}
+      # Use socks5h for remote DNS resolution
+      # - HTTP_PROXY=socks5h://host.docker.internal:2080
+      # - HTTPS_PROXY=socks5h://host.docker.internal:2080
+      # - ALL_PROXY=socks5h://host.docker.internal:2080
+      # - NO_PROXY=localhost,127.0.0.1,db,redis,searxng
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Required for Linux
     volumes:
       - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
     restart: unless-stopped
@@ -68,6 +75,14 @@ services:
     command: celery -A app.tasks.celery_app worker --loglevel=info
     env_file:
       - .env
+    # environment:
+      # The worker needs the proxy to scrape blocked websites
+      # - HTTP_PROXY=socks5h://host.docker.internal:2080
+      # - HTTPS_PROXY=socks5h://host.docker.internal:2080
+      # - ALL_PROXY=socks5h://host.docker.internal:2080
+      # - NO_PROXY=localhost,127.0.0.1,db,redis,searxng
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Required for Linux
     depends_on:
       db:
         condition: service_healthy
