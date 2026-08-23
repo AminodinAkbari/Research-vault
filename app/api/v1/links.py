@@ -2,18 +2,19 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_project
 from app.db.session import get_db
 from app.models.project import Project
-from app.schemas.link import SavedLinkCreate, SavedLinkRead, LinkSummaryResponse
+from app.schemas.link import SavedLinkCreate, SavedLinkRead, LinkSummaryResponse, LinkStatusUpdate, LinkStatusResponse
 from app.schemas.bulk_tags import BulkTagsRequest, BulkTagsResponse
 from app.services import bulk_tags as bulk_tags_service
 from app.schemas.search import SearchQuery, SearchResult
 from app.schemas.tag import TagAttachRequest
 from app.schemas.highlights import ExplainRequest, HighlightRead
+from app.models.link import ReadingStatus
 from app.services import link as link_service
 from app.services import highlight as highlight_service
 from app.services import summarisation as summarisation_service
@@ -51,11 +52,23 @@ async def create_link(
 
 @router.get("/links", response_model=list[SavedLinkRead])
 async def list_links(
+    status_filter: str | None = Query(default=None, alias="status"),
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> list[SavedLinkRead]:
-    """List all saved links for the current project."""
-    return await link_service.list_links(db, project_id=project.id)
+    """List saved links for the current project, optionally filtered by
+    reading-list status (to_read, reading, done, archived)."""
+    if status_filter is not None:
+        try:
+            status_filter = ReadingStatus(status_filter).value
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid status; must be one of: {', '.join(s.value for s in ReadingStatus)}",
+            ) from exc
+    return await link_service.list_links(
+        db, project_id=project.id, status=status_filter
+    )
 
 
 @router.get("/links/{link_id}", response_model=SavedLinkRead)
@@ -202,6 +215,31 @@ async def summarise_link_endpoint(
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Summarisation service unavailable",
+        ) from exc
+
+
+@router.patch("/links/{link_id}/status", response_model=LinkStatusResponse)
+async def update_link_status(
+    link_id: uuid.UUID,
+    payload: LinkStatusUpdate,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> SavedLinkRead:
+    """Update a saved link's reading-list status.
+
+    Raises 404 NOT FOUND when the link does not exist in this project;
+    422 UNPROCESSABLE ENTITY for a status outside the allowed values.
+    """
+    try:
+        return await link_service.set_link_status(
+            db,
+            project_id=project.id,
+            link_id=link_id,
+            status=payload.status.value,
+        )
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Link not found"
         ) from exc
 
 

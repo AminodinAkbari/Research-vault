@@ -6,7 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.link import ExtractionStatus
+from app.models.link import ExtractionStatus, ReadingStatus
 from app.schemas.tag import TagResponse
 
 
@@ -31,6 +31,7 @@ class SavedLinkUpdate(BaseModel):
     extracted_content: Optional[str] = None
     extraction_status: Optional[ExtractionStatus] = None
     tag_ids: Optional[list[uuid.UUID]] = None
+    status: Optional[ReadingStatus] = None
 
 
 class SavedLinkRead(SavedLinkBase):
@@ -40,12 +41,23 @@ class SavedLinkRead(SavedLinkBase):
     project_id: uuid.UUID
     extracted_content: Optional[str] = None
     extraction_status: ExtractionStatus
+    status: ReadingStatus = ReadingStatus.to_read
     created_at: datetime
     tags: list[TagResponse] = []
     summary: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
-class LinkSummaryResponse(BaseModel): 
+class LinkStatusUpdate(BaseModel):
+    """Payload for the link reading-status PATCH endpoint."""
+
+    status: ReadingStatus
+
+
+class LinkSummaryResponse(BaseModel):
     id: uuid.UUID
     summary: str
+    
+class LinkStatusResponse(BaseModel):
+    id: uuid.UUID
+    status: ReadingStatus
