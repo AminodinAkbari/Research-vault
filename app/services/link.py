@@ -24,12 +24,16 @@ def _link_select():
     )
 
 
-async def list_links(db: AsyncSession, *, project_id: uuid.UUID) -> list[SavedLink]:
-    result = await db.execute(
-        _link_select()
-        .where(SavedLink.project_id == project_id)
-        .order_by(SavedLink.created_at.desc())
-    )
+async def list_links(
+    db: AsyncSession,
+    *,
+    project_id: uuid.UUID,
+    status: Optional[str] = None,
+) -> list[SavedLink]:
+    query = _link_select().where(SavedLink.project_id == project_id)
+    if status is not None:
+        query = query.where(SavedLink.status == status)
+    result = await db.execute(query.order_by(SavedLink.created_at.desc()))
     return list(result.scalars().all())
 
 
@@ -75,6 +79,20 @@ async def delete_link(
     link = await get_link(db, project_id=project_id, link_id=link_id)
     await db.delete(link)
     await db.flush()
+
+
+async def set_link_status(
+    db: AsyncSession,
+    *,
+    project_id: uuid.UUID,
+    link_id: uuid.UUID,
+    status: str,
+) -> SavedLink:
+    """Update a link's reading-list status and return the refreshed link."""
+    link = await get_link(db, project_id=project_id, link_id=link_id)
+    link.status = status
+    await db.flush()
+    return await get_link(db, project_id=project_id, link_id=link.id)
 
 
 async def trigger_extraction(
