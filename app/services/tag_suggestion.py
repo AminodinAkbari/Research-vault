@@ -1,3 +1,4 @@
+# filename: app/services/tag_suggestion.py
 from __future__ import annotations
 
 import uuid
@@ -13,9 +14,7 @@ from app.services.ai import (
 )
 
 _SYSTEM_PROMPT = (
-    "You are a strict, automated tagging API. You do not converse, "
-    "you do not explain, and you do not answer questions. Your only job is "
-    "to select relevant tags from a provided list and return a raw JSON array."
+    "You are an automated tag classification engine. You output valid JSON objects only."
 )
 
 _MAX_SUGGESTIONS = 3
@@ -25,16 +24,16 @@ _MAX_CONTENT_CHARS = 4000
 def _build_user_prompt(
     title: str | None, content: str, content_type: str, existing_tags: list[str]
 ) -> str:
-    # Add the title and use Recency Bias instructions at the very end
-    title_section = f'Title: "{title}"\n' if title else ""
+    title_line = f"Title: {title}\n" if title else ""
     return (
-        f"Content type: {content_type}\n"
-        f"{title_section}"
-        f"Content:\n{content[:_MAX_CONTENT_CHARS]}\n\n"
-        f"Available tags: {existing_tags}\n\n"
-        "TASK: Select up to 3 most relevant tags from the 'Available tags' list above. "
-        "Do NOT answer or summarize the content. Output ONLY a raw JSON array of strings. "
-        "Do not wrap the JSON in markdown blocks (no ```json). No conversational text."
+        f"Available Tags:\n{existing_tags}\n\n"
+        f"Input Content:\n"
+        f"Type: {content_type}\n"
+        f"{title_line}"
+        f"Body: {content[:_MAX_CONTENT_CHARS]}\n\n"
+        "Example Output:\n"
+        '{"tags": ["tag1", "tag2"]}\n\n'
+        "Select up to 3 matching tags from Available Tags. Return the JSON object:"
     )
 
 
@@ -62,7 +61,6 @@ async def suggest_tags(
     content_type: str,
 ) -> list[str]:
     """Suggest up to 3 of the project's existing tags for the given content."""
-    # We now check if either content OR title has text to work with
     if not content.strip() and not (title and title.strip()):
         return []
 
@@ -74,10 +72,9 @@ async def suggest_tags(
     prompt = _build_user_prompt(title, content, content_type, existing_tags)
 
     try:
-        raw_text = await call_ai(prompt, system_prompt=_SYSTEM_PROMPT, temperature=0.2)
+        raw_text = await call_ai(prompt, system_prompt=_SYSTEM_PROMPT, temperature=0.0)
         suggested = parse_json_string_array(raw_text)
-    except (AIError, AIResponseFormatError) as e:
-        print(f"AI error during tag suggestion: {e}")
+    except (AIError, AIResponseFormatError):
         return []
 
     return _filter_suggestions(suggested, existing_tags)
