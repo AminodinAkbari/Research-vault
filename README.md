@@ -72,17 +72,17 @@ All AI features are designed as **one‑shot helpers**, not chatbots. They’re 
 
 ## Tech Stack
 
-| Layer                  | Technology                                                        |
-| ---------------------- | ----------------------------------------------------------------- |
-| API framework          | FastAPI (async)                                                   |
-| Database               | PostgreSQL 16 + SQLAlchemy 2.0 (async)                            |
-| Migrations             | Alembic                                                           |
-| Validation             | Pydantic v2                                                       |
-| Caching / broker       | Redis                                                             |
-| Background tasks       | Celery (using Redis as broker)                                    |
-| Search engine          | SearXNG (self‑hosted)                                            |
-| Containerization<br /> | Docker Compose                                                    |
-| Auth                   | JWT via`python-jose`, password hashing with `passlib[bcrypt]` |
+| Layer            | Technology                                                        |
+| ---------------- | ----------------------------------------------------------------- |
+| API framework    | FastAPI (async)                                                   |
+| Database         | PostgreSQL 16 + SQLAlchemy 2.0 (async)                            |
+| Migrations       | Alembic                                                           |
+| Validation       | Pydantic v2                                                       |
+| Caching / broker | Redis                                                             |
+| Background tasks | Celery (using Redis as broker)                                    |
+| Search engine    | SearXNG (self‑hosted)                                            |
+| Containerization | Docker Compose                                                    |
+| Auth             | JWT via`python-jose`, password hashing with `passlib[bcrypt]` |
 
 ---
 
@@ -142,17 +142,42 @@ Once the app is running:
 
 ---
 
-## Live-Roadmap (high‑level)
+## Network & Proxy Configuration (Regional Restrictions for iraninan users and other countries)
 
-- ~~Milestone 1~~ – Project skeleton, database models, Docker setup ✓
-- ~~Milestone 2~~ – Auth & user isolation ✓
-- ~~Milestone 3~~ – Projects, notes, and tags CRUD ✓
-- ~~Milestone 4~~ – Web search (SearXNG) and link saving ✓
-- ~~Milestone 5~~ – Asynchronous content extraction ✓
-- ~~Milestone 6~~ – Full‑text search and organization ✓
-- ~~Creating basic UI~~ ✓
+Some AI providers (such as OpenRouter or Groq) and external scraping targets may restrict access based on geographic IP location. By default, the application attempts a direct connection. If you are operating in a restricted region, you can easily route Docker container traffic through your host machine's proxy client (e.g., NekoRay, Hiddify, or v2rayA).
 
-I aim to complete a milestone every few days. Progress updates will land in the master branch.
+---
+
+### How It Works
+
+Docker containers run inside an isolated virtual bridge network and cannot reach `127.0.0.1` on your host machine directly. To route traffic through a host-level proxy:
+
+1. `extra_hosts` maps `host.docker.internal` to the host gateway (`172.17.0.1`).
+2. Standard `HTTP_PROXY`, `HTTPS_PROXY`, and `ALL_PROXY` environment variables instruct libraries like `httpx` and `huggingface_hub` to tunnel requests through the host proxy port.
+3. `NO_PROXY` ensures internal service communication (`db`, `redis`, `searxng`) bypasses the proxy entirely.
+
+---
+
+### Setup Guide
+
+Follow these steps if your AI requests or scraping tasks fail due to connection blocks or timeouts:
+
+#### 1. Allow Inbound / LAN Connections in Your Proxy Client
+
+By default, desktop proxy clients only listen on `127.0.0.1` (local loopback), which rejects Docker bridge traffic.
+
+* **NekoRay:** Go to `Preferences` → `Basic Settings` → Check **"Allow LAN"** (or set Listen Address to `0.0.0.0`).
+* **Hiddify:** Open Settings → Enable **"Allow Inbound Connections / Share over LAN"**.
+* Note your local **HTTP proxy port** (commonly `2080`, `2081`, or `10809`).
+
+#### 2. Allow the Proxy Port Through Your Firewall (Linux / Ubuntu)
+
+If you are using `ufw`, open the proxy port so Docker bridge packets are not dropped:
+
+```bash
+sudo ufw allow 2080/tcp
+sudo ufw reload
+```
 
 ---
 
