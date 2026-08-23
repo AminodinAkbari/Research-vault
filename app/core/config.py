@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import os
+
 
 class Settings(BaseSettings):
     # Database (async — used by FastAPI)
@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     # Roadmap rate limiting (Redis, fixed window)
     ROADMAP_RATE_LIMIT_MAX_REQUESTS: int = 5
     ROADMAP_RATE_LIMIT_WINDOW_SECONDS: int = 60
+
+    OPENROUTER_API_KEY: str | None = None
+    HF_API_KEY: str | None = None
+    GROQ_API_KEY: str | None = None
+    GEMINI_API_KEY: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
