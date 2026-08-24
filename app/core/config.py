@@ -32,9 +32,15 @@ class Settings(BaseSettings):
     # Roadmap response caching (Redis)
     ROADMAP_CACHE_TTL_SECONDS: int = 3600
 
-    # Roadmap rate limiting (Redis, fixed window)
-    ROADMAP_RATE_LIMIT_MAX_REQUESTS: int = 5
-    ROADMAP_RATE_LIMIT_WINDOW_SECONDS: int = 60
+    # AI endpoints rate limiting (Redis, fixed window) — shared budget across
+    # roadmap, summarise, explain, suggest-tags and search-semantic.
+    AI_RATE_LIMIT_MAX_REQUESTS: int = 10
+    AI_RATE_LIMIT_WINDOW_SECONDS: int = 60
+
+    # Auth endpoints rate limiting (Redis, fixed window, IP-based) —
+    # brute-force protection for register/login.
+    AUTH_RATE_LIMIT_MAX_REQUESTS: int = 20
+    AUTH_RATE_LIMIT_WINDOW_SECONDS: int = 300
 
     OPENROUTER_API_KEY: str | None = None
     HF_API_KEY: str | None = None
