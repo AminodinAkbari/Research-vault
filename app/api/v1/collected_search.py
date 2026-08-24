@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_project
+from app.core.rate_limiter import ai_rate_limit
 from app.db.session import get_db
 from app.models.project import Project
 from app.schemas.collected_search import (
@@ -27,7 +28,11 @@ async def search_collected_endpoint(
     return await search_collected(db, project_id=project.id, q=q)
 
 
-@router.post("/search-semantic", response_model=list[SemanticSearchResult])
+@router.post(
+    "/search-semantic",
+    response_model=list[SemanticSearchResult],
+    dependencies=[Depends(ai_rate_limit)],
+)
 async def search_semantic_endpoint(
     payload: SemanticSearchRequest,
     project: Project = Depends(get_current_project),

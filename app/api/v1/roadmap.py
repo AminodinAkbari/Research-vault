@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.core.rate_limiter import check_roadmap_rate_limit
+from app.core.rate_limiter import ai_rate_limit
 from app.schemas.roadmap import RoadmapRequest, RoadmapResponse
 from app.services import roadmap as roadmap_service
 
@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post(
     "/roadmap",
     response_model=RoadmapResponse,
-    dependencies=[Depends(check_roadmap_rate_limit)],
+    dependencies=[Depends(ai_rate_limit)],
 )
 async def create_roadmap(payload: RoadmapRequest) -> RoadmapResponse:
     try:
