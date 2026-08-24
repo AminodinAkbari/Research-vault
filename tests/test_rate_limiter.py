@@ -3,7 +3,10 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
+from fastapi import HTTPException
+from redis.exceptions import RedisError
 from starlette.requests import Request
+from starlette.responses import Response
 
 from app.core import rate_limiter
 from tests.fake_redis import FakeAsyncRedis
@@ -66,3 +69,111 @@ def test_client_identifier_handles_missing_client() -> None:
     request = _make_request(client_host=None)
     identifier = rate_limiter._client_identifier(request, None)
     assert identifier == "ip:unknown"
+
+
+class _FakeUser:
+    id = "user-abc"
+
+
+# ---------------------------------------------------------------------------
+# Dependency-factory behaviour
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_dependency_sets_headers_on_allowed_request() -> None:
+    dependency = rate_limiter.create_rate_limit_dependency("dep", max_requests=3, window_seconds=60)
+    request = _make_request()
+    response = Response()
+
+    with patch("app.core.rate_limiter.redis_client", FakeAsyncRedis()):
+        await dependency(request, response, _FakeUser())
+
+    assert response.headers["X-RateLimit-Limit"] == "3"
+    assert response.headers["X-RateLimit-Remaining"] == "2"
+
+
+@pytest.mark.asyncio
+async def test_dependency_rejects_after_limit_with_retry_after() -> None:
+    dependency = rate_limiter.create_rate_limit_dependency("dep", max_requests=1, window_seconds=60)
+    request = _make_request()
+    first, second = Response(), Response()
+
+    with patch("app.core.rate_limiter.redis_client", FakeAsyncRedis()):
+        await dependency(request, first, _FakeUser())
+        with pytest.raises(HTTPException) as exc_info:
+            await dependency(request, second, _FakeUser())
+
+    assert exc_info.value.status_code == 429
+    assert "Retry-After" in exc_info.value.headers
+
+
+@pytest.mark.asyncio
+async def test_dependency_limits_per_user_not_ip() -> None:
+    """Two different users behind the same IP get independent buckets."""
+    dependency = rate_limiter.create_rate_limit_dependency("dep", max_requests=1, window_seconds=60)
+    request = _make_request(client_host="5.6.7.8")
+
+    class _OtherUser:
+        id = "user-other"
+
+    user_a_response, other_user_response = Response(), Response()
+    with patch("app.core.rate_limiter.redis_client", FakeAsyncRedis()):
+        await dependency(request, user_a_response, _FakeUser())
+        # Same IP, different user: still allowed.
+        await dependency(request, other_user_response, _OtherUser())
+        # Same user again: rejected.
+        with pytest.raises(HTTPException):
+            await dependency(request, Response(), _FakeUser())
+
+
+@pytest.mark.asyncio
+async def test_dependency_falls_back_to_ip_for_anonymous_callers() -> None:
+    dependency = rate_limiter.create_rate_limit_dependency("dep", max_requests=1, window_seconds=60)
+    request = _make_request(client_host="9.9.9.9")
+
+    with patch("app.core.rate_limiter.redis_client", FakeAsyncRedis()):
+        await dependency(request, Response(), None)
+        # Anonymous caller from the same IP: rejected.
+        with pytest.raises(HTTPException):
+            await dependency(request, Response(), None)
+
+
+# ---------------------------------------------------------------------------
+# Redis-unavailable fallback (fail open)
+# ---------------------------------------------------------------------------
+
+
+class _BrokenRedis:
+    async def incr(self, key: str) -> int:
+        raise RedisError("connection refused")
+
+    async def expire(self, key: str, seconds: int) -> bool:
+        raise RedisError("connection refused")
+
+    async def ttl(self, key: str) -> int:
+        raise RedisError("connection refused")
+
+
+@pytest.mark.asyncio
+async def test_check_rate_limit_fails_open_when_redis_unavailable() -> None:
+    with patch("app.core.rate_limiter.redis_client", _BrokenRedis()):
+        result = await rate_limiter.check_rate_limit(
+            "some-key", max_requests=5, window_seconds=60
+        )
+
+    assert result.allowed is True
+    assert result.remaining == -1  # unknown quota
+    assert result.retry_after_seconds == 60
+
+
+@pytest.mark.asyncio
+async def test_dependency_reports_unknown_remaining_when_redis_unavailable() -> None:
+    dependency = rate_limiter.create_rate_limit_dependency("dep", max_requests=5, window_seconds=60)
+    response = Response()
+
+    with patch("app.core.rate_limiter.redis_client", _BrokenRedis()):
+        await dependency(_make_request(), response, None)
+
+    assert response.headers["X-RateLimit-Limit"] == "5"
+    assert response.headers["X-RateLimit-Remaining"] == "unknown"
