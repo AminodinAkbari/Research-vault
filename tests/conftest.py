@@ -96,6 +96,19 @@ async def _reset_db() -> AsyncGenerator[None, None]:
     Base.metadata.drop_all(_test_sync_engine)
 
 
+@pytest.fixture(autouse=True)
+def _fake_redis_for_rate_limiter():
+    """Route the rate limiter through an in-memory fake Redis for every test,
+    so endpoints guarded by rate limiting never touch a real Redis instance.
+    """
+    from unittest.mock import patch
+
+    from tests.fake_redis import FakeAsyncRedis
+
+    with patch("app.core.rate_limiter.redis_client", FakeAsyncRedis()):
+        yield
+
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

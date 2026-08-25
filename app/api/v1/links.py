@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_project
+from app.core.rate_limiter import ai_rate_limit
 from app.db.session import get_db
 from app.models.project import Project
 from app.schemas.link import SavedLinkCreate, SavedLinkRead, LinkSummaryResponse, LinkStatusUpdate, LinkStatusResponse
@@ -149,7 +150,11 @@ async def detach_tag_from_link(
         ) from exc
 
 
-@router.post("/links/{link_id}/explain", response_model=list[HighlightRead])
+@router.post(
+    "/links/{link_id}/explain",
+    response_model=list[HighlightRead],
+    dependencies=[Depends(ai_rate_limit)],
+)
 async def explain_link_text(
     link_id: uuid.UUID,
     payload: ExplainRequest,
@@ -188,7 +193,11 @@ async def explain_link_text(
 
     return await highlight_service.list_highlights(db, link_id=link.id)
 
-@router.post("/links/{link_id}/summarise", response_model=LinkSummaryResponse)
+@router.post(
+    "/links/{link_id}/summarise",
+    response_model=LinkSummaryResponse,
+    dependencies=[Depends(ai_rate_limit)],
+)
 async def summarise_link_endpoint(
     link_id: uuid.UUID,
     project: Project = Depends(get_current_project),

@@ -6,7 +6,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 
-from app.core.config import settings
+from app.api.v1 import roadmap as roadmap_router
+from app.core import rate_limiter
+from app.main import app
 from tests.fake_redis import FakeAsyncRedis
 
 VALID_ROADMAP_JSON = json.dumps(
@@ -28,6 +30,21 @@ def _fake_redis_for_roadmap():
         "app.core.rate_limiter.redis_client", fake_redis
     ):
         yield fake_redis
+
+
+@pytest.fixture
+def ai_rate_limit():
+    """Swap in an AI rate-limit dependency sized for the current test.
+    The client fixture clears dependency_overrides on teardown.
+    """
+    def _apply(max_requests: int, window_seconds: int = 60) -> None:
+        app.dependency_overrides[roadmap_router.ai_rate_limit] = (
+            rate_limiter.create_rate_limit_dependency(
+                "ai", max_requests, window_seconds
+            )
+        )
+
+    return _apply
 
 
 @pytest.mark.asyncio
@@ -88,9 +105,10 @@ async def test_create_roadmap_invalid_ai_response_returns_422(client: AsyncClien
 
 
 @pytest.mark.asyncio
-async def test_create_roadmap_sets_rate_limit_headers(client: AsyncClient, monkeypatch) -> None:
-    monkeypatch.setattr(settings, "ROADMAP_RATE_LIMIT_MAX_REQUESTS", 5)
-    monkeypatch.setattr(settings, "ROADMAP_RATE_LIMIT_WINDOW_SECONDS", 60)
+async def test_create_roadmap_sets_rate_limit_headers(
+    client: AsyncClient, ai_rate_limit
+) -> None:
+    ai_rate_limit(max_requests=5)
 
     with patch("app.services.roadmap.call_ai", new_callable=AsyncMock) as mock_call_ai:
         mock_call_ai.return_value = VALID_ROADMAP_JSON
@@ -103,10 +121,9 @@ async def test_create_roadmap_sets_rate_limit_headers(client: AsyncClient, monke
 
 @pytest.mark.asyncio
 async def test_create_roadmap_rate_limit_exceeded_returns_429(
-    client: AsyncClient, monkeypatch
+    client: AsyncClient, ai_rate_limit
 ) -> None:
-    monkeypatch.setattr(settings, "ROADMAP_RATE_LIMIT_MAX_REQUESTS", 2)
-    monkeypatch.setattr(settings, "ROADMAP_RATE_LIMIT_WINDOW_SECONDS", 60)
+    ai_rate_limit(max_requests=2)
 
     with patch("app.services.roadmap.call_ai", new_callable=AsyncMock) as mock_call_ai:
         mock_call_ai.return_value = VALID_ROADMAP_JSON
@@ -126,10 +143,9 @@ async def test_create_roadmap_rate_limit_exceeded_returns_429(
 
 @pytest.mark.asyncio
 async def test_create_roadmap_rate_limit_is_per_authenticated_user(
-    client: AsyncClient, make_user, monkeypatch
+    client: AsyncClient, make_user, ai_rate_limit
 ) -> None:
-    monkeypatch.setattr(settings, "ROADMAP_RATE_LIMIT_MAX_REQUESTS", 1)
-    monkeypatch.setattr(settings, "ROADMAP_RATE_LIMIT_WINDOW_SECONDS", 60)
+    ai_rate_limit(max_requests=1)
 
     _, headers_a = await make_user()
     _, headers_b = await make_user()

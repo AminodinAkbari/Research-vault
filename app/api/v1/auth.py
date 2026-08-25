@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.dependencies import COOKIE_NAME
+from app.core.rate_limiter import auth_rate_limit
 from app.db.session import get_db
 from app.schemas.auth import AuthLogin, AuthRegister, RegisterResponse, TokenResponse
 from app.services.auth import (
@@ -37,6 +38,7 @@ def _set_auth_cookie(response: Response, token: str) -> None:
     "/register",
     response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(auth_rate_limit)],
 )
 async def register(
     payload: AuthRegister,
@@ -62,7 +64,7 @@ async def register(
     )
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=[Depends(auth_rate_limit)])
 async def login(
     payload: AuthLogin,
     response: Response,

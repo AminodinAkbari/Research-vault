@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_project, get_current_project_combined, get_current_user
+from app.core.rate_limiter import ai_rate_limit
 from app.db.session import get_db
 from app.models.project import Project
 from app.models.user import User
@@ -112,7 +113,11 @@ async def export_project_markdown(
     )
 
 
-@router.post("/{project_id}/suggest-tags", response_model=TagSuggestionResponse)
+@router.post(
+    "/{project_id}/suggest-tags",
+    response_model=TagSuggestionResponse,
+    dependencies=[Depends(ai_rate_limit)],
+)
 async def suggest_tags_endpoint(
     payload: TagSuggestionRequest,
     project: Project = Depends(get_current_project),
