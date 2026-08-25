@@ -34,9 +34,7 @@ async def check_rate_limit(
     `INCR` on a fresh key returns 1 and we set its TTL right then, so stale
     windows expire out of Redis on their own instead of accumulating.
 
-    Fails open: if Redis is unavailable, requests are allowed and the
-    remaining quota is reported as unknown rather than taking the whole
-    API down with the cache.
+    Behavior when Redis is unavailable is determined by RATE_LIMITER_FAIL_OPEN.
     """
     window = int(time.time() // window_seconds)
     redis_key = f"ratelimit:{key}:{window}"
@@ -47,12 +45,18 @@ async def check_rate_limit(
             await redis_client.expire(redis_key, window_seconds)
         ttl = await redis_client.ttl(redis_key)
     except RedisError:
-        logger.warning(
-            "Rate limiter unavailable (Redis error); allowing request for key %s", key
-        )
-        return RateLimitResult(
-            allowed=True, remaining=-1, retry_after_seconds=window_seconds
-        )
+        if settings.RATE_LIMITER_FAIL_OPEN:
+            logger.warning(
+                "Rate limiter unavailable (Redis error); allowing request for key %s", key
+            )
+            return RateLimitResult(
+                allowed=True, remaining=-1, retry_after_seconds=window_seconds
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Rate limiter unavailable",
+            )
 
     retry_after = ttl if ttl and ttl > 0 else window_seconds
     remaining = max(0, max_requests - current)
@@ -97,6 +101,8 @@ def create_rate_limit_dependency(
         current_user: User | None = Depends(get_optional_current_user),
     ) -> None:
         identifier = _client_identifier(request, current_user)
+        
+        # HTTPException (like 503) from check_rate_limit will naturally propagate here
         result = await check_rate_limit(
             f"{key_prefix}:{identifier}",
             max_requests=max_requests,
