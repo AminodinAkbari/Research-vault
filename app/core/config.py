@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     # brute-force protection for register/login.
     AUTH_RATE_LIMIT_MAX_REQUESTS: int = 20
     AUTH_RATE_LIMIT_WINDOW_SECONDS: int = 300
+    
+    RATE_LIMITER_FAIL_OPEN: bool = True
 
     OPENROUTER_API_KEY: str | None = None
     HF_API_KEY: str | None = None
