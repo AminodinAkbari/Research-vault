@@ -11,9 +11,10 @@ everything with tags, and later find it again with full-text search.
 students, tinkerers, lifelong learners) — not a multi-tenant SaaS product.
 Every account is fully isolated (the data model supports multiple `User`
 rows), but the intended deployment is "you, on your own machine or server,"
-with no team/sharing features. There is deliberately no AI/LLM integration —
-it is a plain, deterministic backend: your notes, your search index, your
-database.
+with no team/sharing features. AI/LLM features are **optional**: every AI
+capability degrades gracefully (or returns empty results) when no provider
+API key is configured, so the app remains fully usable as a plain,
+deterministic backend without them.
 
 **Core capabilities:**
 - Organize research into **projects** (isolated containers per topic).
@@ -26,7 +27,17 @@ database.
   passages with optional annotations.
 - Tag notes and links, and click a tag to see everything under it.
 - **Full-text search** across notes and links within a project, ranked by
-  relevance.
+  relevance — optionally **AI-reranked** for semantic relevance.
+- **Reading-list statuses** on saved links (`to_read` / `reading` / `done` /
+  `archived`) with filtering, independent of tags.
+- **Bulk tagging**: add/remove tags across many notes or links in one request.
+- Optional **AI assistance** (all backed by one shared AI service with
+  multi-provider fallback): explain selected text as a highlight annotation,
+  summarise a link's extracted content, generate an ordered research
+  **roadmap** for a subject (Redis-cached), and suggest existing tags for new
+  content.
+- **Markdown export** of a whole project (notes, links, highlights) as a
+  downloadable file.
 - All of the above through both a **JSON API** (for scripting / external
   tools) and a **server-rendered HTML+HTMX UI** (for day-to-day use), backed
   by the exact same service layer.
@@ -47,7 +58,9 @@ database.
 | Validation / settings       | **Pydantic v2** / **pydantic-settings**  | Request/response schemas; `.env`-backed `Settings`. |
 | Auth                        | **python-jose** (JWT), **passlib[bcrypt]** | Token issuing/verification; password hashing. |
 | Background tasks            | **Celery**                               | Runs link content extraction outside the request/response cycle. |
-| Task broker/result backend  | **Redis**                                | Celery's broker and result backend. |
+| Task broker/result backend  | **Redis**                                | Celery's broker and result backend; also used directly by the app for roadmap caching and rate limiting. |
+| Redis client (app-side)     | **redis-py** (async)                     | Async Redis connection used by the rate limiter (`app/core/rate_limiter.py`) and the roadmap cache (`app/services/roadmap.py`). |
+| AI providers                | **huggingface-hub** (`AsyncInferenceClient`) + **httpx** | One shared AI service (`app/services/ai.py`, `call_ai`) with waterfall fallback across OpenRouter → Hugging Face → Groq (any OpenAI-compatible endpoint). Optional per-provider API keys. |
 | HTTP client                 | **httpx** (async in the app, sync in the Celery task) | Talks to SearXNG and fetches saved article URLs. |
 | Content extraction          | **readability-lxml** + **lxml**          | Strips a fetched page down to its main article text. |
 | Web search engine           | **SearXNG** (self-hosted container)      | Privacy-respecting meta search; the app proxies queries to it. |
@@ -68,7 +81,9 @@ server-rendered HTML enhanced with HTMX, by design (see §4).
 - `app` — the FastAPI application (Uvicorn), serves *both* `/api/v1/*` JSON
   endpoints and the HTML/HTMX UI on the same port (8000).
 - `db` — PostgreSQL 16, with a healthcheck gating the other services.
-- `redis` — Celery's broker and result backend.
+- `redis` — Celery's broker and result backend, *and* the app-side store for
+  roadmap caching and fixed-window rate limiting (both via the async
+  `redis_client` in `app/core/redis.py`).
 - `searxng` — a self-hosted SearXNG meta search engine, queried over HTTP by
   `app`.
 - `celery_worker` — the same application image as `app`, but running
@@ -254,6 +269,51 @@ are meaningful right now. Implementing real range→character-offset mapping
 the selection anchor) is the natural next step and is isolated to the
 client-side JS in `read.html` — no schema or API change would be required.
 
+### Why one shared AI service with provider waterfall, not per-feature clients
+Every AI-backed feature (explain, summarise, roadmap, tag suggestions,
+semantic rerank) goes through a single `call_ai()` function in
+`app/services/ai.py`. It builds a provider list from whichever optional API
+keys are configured (`OPENROUTER_API_KEY`, `HF_API_KEY`, `GROQ_API_KEY`) and
+tries them in order — OpenRouter first, then Hugging Face's
+`AsyncInferenceClient`, then Groq — falling back to the next provider on any
+failure. This gives three properties for free: features never duplicate
+client/auth/parsing code; regional blocking of one provider degrades to the
+next instead of failing the request; and with *no* keys set, `call_ai` raises
+a clear `AIError` that each endpoint maps to its own graceful degradation
+(502, empty suggestions, or full-text-only search order). Shared response
+parsing helpers (`extract_json_array` / `parse_json_array`) live here too,
+since every prompt asks for raw JSON arrays and LLMs wrap them in prose or
+markdown fences unpredictably.
+
+### Why "semantic search" is AI reranking, not vector search
+`search_semantic()` (`app/services/semantic_search.py`) takes the top 10
+candidates from the existing Postgres full-text search and makes **one** AI
+call asking the model to return them reordered as a JSON array of IDs. It is
+deliberately *not* an embedding/vector store: nothing becomes retrievable
+that full-text search wouldn't already find. For one person's library this
+avoids an entire embedding pipeline + vector index (and keeping it in sync),
+while still fixing the classic FTS weakness — lexical matches ranked without
+any notion of *meaning*. Failure handling is total: if the AI call fails or
+returns unparsable JSON, the full-text ordering is returned unchanged (the
+endpoint always answers 200). Model-invented IDs are ignored and omitted
+candidates keep their original order at the end, so reranking can never drop
+a result.
+
+### Why rate limiting is a Redis fixed window that fails open
+`app/core/rate_limiter.py` implements a reusable dependency factory
+(`create_rate_limit_dependency`) rather than per-endpoint middleware: keys are
+scoped per caller (`user:{id}` when authenticated via the optional-auth
+dependency, `ip:{host}` otherwise), bucketed into wall-clock windows with
+`INCR` + `EXPIRE`. Two instances exist: a shared **AI budget** (`ai_rate_limit`)
+covering roadmap, summarise, explain, suggest-tags, and search-semantic (so
+one user can't multiply their quota across endpoints), and an IP-keyed
+**auth budget** (`auth_rate_limit`) as brute-force protection on register/
+login. When Redis is unavailable, behaviour follows `RATE_LIMITER_FAIL_OPEN`
+(default `true`: log and allow, so a Redis outage never takes the app down;
+`false`: fail closed with `503`). Quota headers (`X-RateLimit-Limit`,
+`X-RateLimit-Remaining`, `Retry-After` on 429) are always set so callers can
+see remaining quota before hitting it.
+
 ---
 
 ## 5. Data Models
@@ -267,7 +327,7 @@ Tag}`.
 | **users**       | One row per account; stores email + bcrypt password hash. | Owns many `projects` (cascade delete). |
 | **projects**    | An isolated container for one research topic, owned by exactly one user. | Belongs to a `user`; owns many `notes`, `saved_links`, and `tags` (all cascade delete). |
 | **notes**       | A free-text note within a project. | Belongs to a `project`. Optionally references one `saved_links` row via `source_link_id` (nullable, `ON DELETE SET NULL` — deleting the link detaches the note rather than deleting it). Many-to-many with `tags` through `note_tags`. |
-| **saved_links**  | A URL saved from web search (or added directly), plus its extraction state and extracted article text. | Belongs to a `project`. Many-to-many with `tags` through `link_tags`. Owns many `highlights` (cascade delete). `extraction_status` is one of `pending` / `completed` / `failed`. |
+| **saved_links**  | A URL saved from web search (or added directly), plus its extraction state, extracted article text, AI summary, and reading-list status. | Belongs to a `project`. Many-to-many with `tags` through `link_tags`. Owns many `highlights` (cascade delete). `extraction_status` is one of `pending` / `completed` / `failed`; `status` is one of `to_read` / `reading` / `done` / `archived` (defaults `to_read`, independent of tags); `summary` is a nullable AI-generated summary written by the summarisation endpoint. |
 | **tags**        | A short label, unique per project (`project_id` + `name`). | Belongs to a `project`. Many-to-many with both `notes` and `saved_links`. |
 | **note_tags**    | Association table (composite PK: `note_id`, `tag_id`). | Links one `note` to one `tag`. |
 | **link_tags**    | Association table (composite PK: `link_id`, `tag_id`). | Links one `saved_link` to one `tag`. |
@@ -284,8 +344,9 @@ duplicated search index table.
 
 **Versioning:** the entire JSON API is mounted under `/api/v1`
 (`app/main.py`), grouped into routers: `auth`, `projects`,
-`projects/{project_id}/notes`, `projects/{project_id}/tags`, and links/search
-endpoints nested under `projects/{project_id}`. The server-rendered UI lives
+`projects/{project_id}/notes`, `projects/{project_id}/tags`, links/search
+endpoints nested under `projects/{project_id}`, and a project-independent
+`roadmap` router at `/api/v1/roadmap`. The server-rendered UI lives
 at unversioned, unprefixed paths (`/`, `/login`, `/dashboard`,
 `/projects/{project_id}`, ...) — it's not a stable external contract the way
 the JSON API is, so it doesn't need its own version namespace, and keeping it
@@ -323,10 +384,21 @@ list/detail, `PUT` partial-ish update (body validated via a schema whose
 fields default to optional / `exclude_unset=True`), `DELETE` (`204`).
 Association actions (attach/detach a tag) are modeled as sub-resources:
 `POST/DELETE /notes/{note_id}/tags[/{tag_id}]`,
-`POST/DELETE /links/{link_id}/tags[/{tag_id}]`. Cross-cutting actions that
-aren't pure CRUD get their own verbs under the same nested prefix:
-`POST /projects/{id}/search` (proxy a SearXNG query),
-`GET /projects/{id}/search-collected` (full-text search).
+`POST/DELETE /links/{link_id}/tags[/{tag_id}]`, plus a project-wide
+`POST /links/bulk-tags` for applying/removing tags across many notes or
+links at once. Cross-cutting actions that aren't pure CRUD get their own
+verbs under the same nested prefix: `POST /projects/{id}/search` (proxy a
+SearXNG query), `GET /projects/{id}/search-collected` (full-text search),
+`POST /projects/{id}/search-semantic` (full-text search + AI rerank),
+`POST /projects/{id}/suggest-tags`, `POST .../links/{link_id}/explain`,
+`POST .../links/{link_id}/summarise`, `PATCH .../links/{link_id}/status`,
+and `GET /projects/{id}/export/markdown`.
+
+**Rate limiting:** all AI-backed endpoints share one Redis fixed-window
+budget (`ai_rate_limit`), and register/login have an IP-keyed budget
+(`auth_rate_limit`) — see §4. Exceeding a limit returns `429` with
+`Retry-After`; if the limiter's Redis is down, `RATE_LIMITER_FAIL_OPEN`
+decides between allowing the request (default) or `503`.
 
 **API vs UI symmetry:** the UI routers (`app/api/ui.py`,
 `app/api/ui_project.py`) intentionally mirror this same
@@ -348,7 +420,12 @@ app/
 │   ├── security.py          # JWT issue/decode, bcrypt password hashing
 │   ├── dependencies.py      # Auth + project-ownership dependencies —
 │   │                        # both header-based (API) and cookie-based (UI),
-│   │                        # sharing one token-resolution helper
+│   │                        # sharing one token-resolution helper; also
+│   │                        # combined (header-or-cookie) and optional-auth
+│   │                        # variants used by export and rate limiting
+│   ├── rate_limiter.py        # Redis fixed-window rate limiter dependency
+│   │                          # factory; `ai_rate_limit` and `auth_rate_limit`
+│   ├── redis.py               # Shared async Redis client (app-side)
 │   └── templates.py         # Single shared Jinja2Templates instance
 ├── db/
 │   ├── base.py               # SQLAlchemy DeclarativeBase
@@ -365,16 +442,23 @@ app/
 ├── services/                  # ALL business logic. Pure async functions
 │                              # taking an AsyncSession + explicit kwargs;
 │                              # no HTTP/FastAPI concerns in here at all.
-│                              # Both api/v1/*.py and api/ui*.py import
-│                              # from here — this is the one place logic
-│                              # lives, so it's never duplicated between
-│                              # the JSON API and the HTML UI.
+│                              # Includes the AI-backed services (ai.py =
+│                              # shared `call_ai` + provider waterfall +
+│                              # JSON parsing; roadmap.py, summarisation.py,
+│                              # tag_suggestion.py, semantic_search.py) and
+│                              # bulk_tags.py / export.py. Both api/v1/*.py
+│                              # and api/ui*.py import from here — this is
+│                              # the one place logic lives, so it's never
+│                              # duplicated between the JSON API and the
+│                              # HTML UI.
 ├── api/
 │   ├── v1/                   # JSON API routers — thin: validate the
 │   │                          # request via a schema, call a service
 │   │                          # function, translate service exceptions
 │   │                          # (NotFoundError, AlreadyExistsError, ...)
 │   │                          # into the right HTTPException.
+│   │                          # roadmap.py is project-independent
+│   │                          # (`POST /api/v1/roadmap`).
 │   ├── ui.py                  # HTML pages: /, /login, /register,
 │   │                          # /dashboard, /logout
 │   └── ui_project.py          # HTML/HTMX routes for everything under
@@ -569,10 +653,17 @@ docker compose exec app alembic upgrade head
 | `JWT_ALGORITHM`                                           | Defaults to`HS256`.                                                                                           |
 | `JWT_EXPIRE_MINUTES`                                      | Token / cookie lifetime.                                                                                        |
 | `APP_ENV`                                                 | Free-form environment marker (`development`, etc.).                                                           |
+| `OPENROUTER_API_KEY` / `HF_API_KEY` / `GROQ_API_KEY` / `GEMINI_API_KEY` | Optional AI provider keys. The AI waterfall uses whichever are set (in that order); with none set, AI features fail gracefully. |
+| `ROADMAP_CACHE_TTL_SECONDS`                               | Redis TTL for cached roadmaps (default `3600`).                                                                |
+| `AI_RATE_LIMIT_MAX_REQUESTS` / `AI_RATE_LIMIT_WINDOW_SECONDS` | Shared fixed-window budget for all AI endpoints (defaults `10` / `60`).                                    |
+| `AUTH_RATE_LIMIT_MAX_REQUESTS` / `AUTH_RATE_LIMIT_WINDOW_SECONDS` | IP-keyed fixed-window budget for register/login (defaults `20` / `300`).                                |
+| `RATE_LIMITER_FAIL_OPEN`                                  | `true` (default) allows requests when Redis is down; `false` returns `503`.                                   |
 
 **Migrations:** `alembic upgrade head` inside the `app` container applies
-all schema changes, including the full-text-search GIN indexes and the
-`notes.source_link_id` / `highlights` migration. Note that `app/main.py`'s
+all schema changes, including the full-text-search GIN indexes, the
+`notes.source_link_id` / `highlights` migration, the `saved_links.summary`
+column (AI summaries), and the `saved_links.status` column (reading-list
+statuses). Note that `app/main.py`'s
 `lifespan` also calls `Base.metadata.create_all` on startup as a dev
 convenience (so a brand-new empty database "just works" without running
 Alembic first); this is idempotent and harmless alongside real migrations,

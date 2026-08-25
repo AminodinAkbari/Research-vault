@@ -59,6 +59,7 @@ This is the core workspace, split into **tabs**. Only one tab is visible at a ti
 - **Back link**: “← Back to projects” → `/dashboard`.
 - **Search box**: Live full‑text search across notes and links within this project. See §5.3.
 - **Tag filter results area**: Where tag‑filtered items appear. See §5.2.
+- **Export as Markdown button**: Below the search area. A plain link (`<a href="/api/v1/projects/{project_id}/export/markdown" download>`) that downloads the whole project — notes, saved links, and highlights — as one Markdown file. Works without JavaScript; cookie auth is accepted on this endpoint so no extra wiring is needed.
 
 #### 3.4.2 Tabs
 
@@ -243,3 +244,5 @@ All UI routes (endpoints returning HTML) use the same backend service layer as t
 - `GET /projects/{project_id}/tags/{tag_id}/items` – tag‑filtered items
 
 All these routes are protected and require a valid session (cookie). They also enforce project ownership (only the owner of the project can access its data).
+
+Additionally, the backend now exposes features with **no reference-UI elements yet** that a new frontend may want to surface: AI explanations (`POST /api/v1/projects/{project_id}/links/{link_id}/explain`), link summarisation (`POST .../links/{link_id}/summarise`), reading-list statuses (`PATCH .../links/{link_id}/status` and `GET .../links?status=...`), bulk tagging (`POST .../bulk-tags`), AI tag suggestions (`POST .../suggest-tags`), semantic search (`POST .../search-semantic`), research roadmaps (`POST /api/v1/roadmap`), and the Markdown export already linked above. See `API-SPEC.md` for full request/response details.

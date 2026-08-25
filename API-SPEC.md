@@ -14,18 +14,23 @@
 5. [Tags](#tags)
 6. [Highlights (UI endpoints)](#highlights-ui-endpoints)
 7. [Search](#search)
-8. [Error Codes](#error-codes)
+8. [AI Endpoints](#ai-endpoints)
+9. [Export](#export)
+10. [Rate Limiting](#rate-limiting)
+11. [Error Codes](#error-codes)
 
 ---
 
 ## Authentication
 
-All endpoints under `/api/v1/projects/**`, `/api/v1/notes/**`, `/api/v1/tags/**`, `/api/v1/links/**`, and `/api/v1/search-collected` require authentication.
+All endpoints under `/api/v1/projects/**`, `/api/v1/notes/**`, `/api/v1/tags/**`, `/api/v1/links/**`, and `/api/v1/search-collected` require authentication. `POST /api/v1/roadmap` works **without** authentication (rate-limited per IP for anonymous callers, per user when a valid token is present).
 
 **Methods:**
 
 - **JWT Bearer:** `Authorization: Bearer <token>`
 - **Cookie:** `access_token=<token>` (httpOnly, SameSite=lax)
+
+**Rate limits:** register/login are IP-keyed (`AUTH_RATE_LIMIT_*`); all AI-backed endpoints share one per-user (or per-IP) budget (`AI_RATE_LIMIT_*`). Exceeding either returns `429 Too Many Requests` with `Retry-After`. See [Rate Limiting](#rate-limiting).
 
 ### POST /api/v1/auth/register
 
@@ -91,6 +96,7 @@ Authenticate and receive JWT token.
 **Error Codes:**
 
 - `401 Unauthorized` — Invalid credentials (`WWW-Authenticate: Bearer` header included)
+- `429 Too Many Requests` — Rate limit exceeded (see [Rate Limiting](#rate-limiting))
 
 ---
 
@@ -496,6 +502,8 @@ Save a new link to the project. Triggers async content extraction.
   "search_query": "transformer architecture",
   "extracted_content": null,
   "extraction_status": "pending",
+  "status": "to_read",
+  "summary": null,
   "created_at": "2024-01-15T11:30:00Z",
   "tags": [
     { "id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "name": "transformer" }
@@ -522,6 +530,10 @@ Save a new link to the project. Triggers async content extraction.
 
 List all saved links in the project.
 
+**Query Parameters:**
+
+- `status` (string, optional) — Filter by reading-list status; one of `to_read`, `reading`, `done`, `archived`
+
 **Response (200 OK):**
 
 ```json
@@ -535,6 +547,8 @@ List all saved links in the project.
     "search_query": "transformer architecture",
     "extracted_content": "Full extracted text...",
     "extraction_status": "completed",
+    "status": "to_read",
+    "summary": null,
     "created_at": "2024-01-15T11:30:00Z",
     "tags": [
       { "id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "name": "transformer" }
@@ -542,6 +556,10 @@ List all saved links in the project.
   }
 ]
 ```
+
+**Error Codes:**
+
+- `422 Unprocessable Entity` — Invalid `status` value
 
 ---
 
@@ -598,6 +616,158 @@ Detach a tag from a saved link.
 **Error Codes:**
 
 - `404 Not Found` — Link not found
+
+---
+
+### POST /api/v1/projects//links//explain
+
+Generate an AI explanation for a selected text passage and store it as a
+highlight annotation on the link. Rate-limited under the shared AI budget.
+
+**Path Parameters:**
+
+- `link_id` (UUID)
+
+**Request Body:**
+
+```json
+{
+  "selected_text": "The dominant sequence transduction models...",
+  "start_offset": 0,
+  "end_offset": 52
+}
+```
+
+**Response (200 OK):** The link's full highlights list (`HighlightRead[]`):
+
+```json
+[
+  {
+    "id": "eeeeeeee-ffff-0000-1111-222222222222",
+    "link_id": "dddddddd-eeee-ffff-0000-111111111111",
+    "selected_text": "The dominant sequence transduction models...",
+    "annotation": "This sentence introduces the Transformer architecture...",
+    "start_offset": 0,
+    "end_offset": 52,
+    "color": "yellow",
+    "created_at": "2024-01-15T12:00:00Z"
+  }
+]
+```
+
+**Special Behaviour:**
+
+- The explanation is saved as the annotation of a new highlight (color `yellow`)
+- If the AI returns an empty explanation, the fallback string `"Could not generate explanation."` is stored
+
+**Error Codes:**
+
+- `404 Not Found` — Link not found
+- `429 Too Many Requests` — AI rate limit exceeded
+- `502 Bad Gateway` — AI explanation service unavailable
+
+---
+
+### POST /api/v1/projects//links//summarise
+
+Summarise the link's extracted content with AI and persist it to the link's
+`summary` field. Rate-limited under the shared AI budget.
+
+**Response (200 OK):**
+
+```json
+{
+  "id": "dddddddd-eeee-ffff-0000-111111111111",
+  "summary": "This paper introduces the Transformer, a sequence model based entirely on attention..."
+}
+```
+
+**Special Behaviour:**
+
+- Idempotent: if the link already has a summary, it is returned immediately without another AI call
+
+**Error Codes:**
+
+- `400 Bad Request` — Extraction hasn't produced content yet
+- `404 Not Found` — Link not found
+- `429 Too Many Requests` — AI rate limit exceeded
+- `502 Bad Gateway` — Summarisation service unavailable
+
+---
+
+### PATCH /api/v1/projects//links//status
+
+Update a saved link's reading-list status.
+
+**Request Body:**
+
+```json
+{
+  "status": "reading"
+}
+```
+
+`status` must be one of: `to_read`, `reading`, `done`, `archived`.
+
+**Response (200 OK):**
+
+```json
+{
+  "id": "dddddddd-eeee-ffff-0000-111111111111",
+  "status": "reading"
+}
+```
+
+**Error Codes:**
+
+- `404 Not Found` — Link not found
+- `422 Unprocessable Entity` — Invalid status value
+
+---
+
+### POST /api/v1/projects//bulk-tags
+
+Add or remove one or more tags across multiple notes or links in a single
+request. Idempotent: existing attachments are ignored on `add`, missing ones
+on `remove`.
+
+**Request Body:**
+
+```json
+{
+  "item_type": "links",
+  "item_ids": [
+    "dddddddd-eeee-ffff-0000-111111111111",
+    "dddddddd-eeee-ffff-0000-222222222222"
+  ],
+  "action": "add",
+  "tag_ids": ["aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"]
+}
+```
+
+**Field Notes:**
+
+- `item_type` — `notes` or `links`
+- `action` — `add` or `remove`
+- `item_ids` / `tag_ids` — at least one UUID each; duplicates are deduplicated
+
+**Response (200 OK):**
+
+```json
+{
+  "updated_items": [
+    "dddddddd-eeee-ffff-0000-111111111111",
+    "dddddddd-eeee-ffff-0000-222222222222"
+  ],
+  "applied_tags": ["aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"],
+  "action": "add"
+}
+```
+
+**Error Codes:**
+
+- `404 Not Found` — Any item or tag not found in this project
+- `422 Unprocessable Entity` — Invalid enum values
 
 ---
 
@@ -770,6 +940,192 @@ Full-text search across notes and saved links in the current project using Postg
 
 ---
 
+### POST /api/v1/projects//search-semantic
+
+Full-text search across notes and links, reranked by semantic relevance with
+one AI call. Rate-limited under the shared AI budget.
+
+**Request Body:**
+
+```json
+{
+  "query": "how do transformers handle long-range dependencies"
+}
+```
+
+**Response (200 OK):** Same shape as `search-collected`, plus a `semantic: true` flag on each result:
+
+```json
+[
+  {
+    "type": "link",
+    "id": "dddddddd-eeee-ffff-0000-111111111111",
+    "title": "Attention Is All You Need",
+    "snippet": "The dominant sequence transduction models...",
+    "rank": 0.72,
+    "semantic": true
+  }
+]
+```
+
+**Special Behaviour:**
+
+- Reranking only reorders the top 10 full-text candidates — nothing is retrievable here that `search-collected` wouldn't find
+- **Always 200:** if the AI service fails or returns unparsable output, the full-text ordering is returned unchanged (results are never dropped)
+
+**Error Codes:**
+
+- `400 Bad Request` — Query missing or empty
+- `401 Unauthorized`
+- `403 Forbidden` — Not project owner
+- `429 Too Many Requests` — AI rate limit exceeded
+
+---
+
+## AI Endpoints
+
+### POST /api/v1/roadmap
+
+Generate an ordered learning roadmap for a subject. Project-independent (not
+nested under `/projects`). Rate-limited under the shared AI budget; keyed per
+user when authenticated, per IP otherwise.
+
+**Authentication:** Optional (`get_optional_current_user`)
+
+**Request Body:**
+
+```json
+{
+  "subject": "Linux kernel development"
+}
+```
+
+- `subject` — required, 1–200 chars, not blank after trimming
+
+**Response (200 OK):**
+
+```json
+{
+  "roadmap": [
+    {
+      "step": "What is Linux?",
+      "keywords": ["linux basics", "what is linux kernel"]
+    },
+    {
+      "step": "Shell and command line fundamentals",
+      "keywords": ["linux shell tutorial", "bash basics"]
+    }
+  ]
+}
+```
+
+(4–8 steps, ordered foundational → advanced; each step has a `keywords` array of 2–5 search terms.)
+
+**Special Behaviour:**
+
+- Results are cached in Redis per normalized subject for `ROADMAP_CACHE_TTL_SECONDS` (default 3600); repeated requests within the TTL skip the AI call entirely
+- One retry is made when the AI response can't be parsed as a roadmap; network failures are **not** retried
+
+**Error Codes:**
+
+- `422 Unprocessable Entity` — Blank/oversized subject, or the AI returned an unparsable roadmap (after one retry)
+- `429 Too Many Requests` — AI rate limit exceeded
+- `502 Bad Gateway` — AI service unavailable / all providers failed
+
+---
+
+### POST /api/v1/projects//suggest-tags
+
+Suggest up to 3 of the project's **existing** tags for a piece of content,
+using AI. Rate-limited under the shared AI budget.
+
+**Request Body:**
+
+```json
+{
+  "title": "Notes on attention mechanisms",
+  "content": "Self-attention lets a model weigh all positions of a sequence...",
+  "content_type": "note"
+}
+```
+
+- `title` — optional; `content` and `content_type` required
+
+**Response (200 OK):**
+
+```json
+{
+  "suggested_tags": ["transformer", "attention"]
+}
+```
+
+**Special Behaviour:**
+
+- **Always 200:** advisory endpoint — no project tags, empty input, AI failure, or unparsable output all return an empty list rather than an error
+- Suggestions are filtered to real tags in this project (case-insensitive match) and deduplicated, max 3
+
+**Error Codes:**
+
+- `401 Unauthorized`
+- `403 Forbidden` — Not project owner
+- `429 Too Many Requests` — AI rate limit exceeded
+
+---
+
+## Export
+
+### GET /api/v1/projects//export/markdown
+
+Export the entire project (notes, saved links, highlights) as a single
+downloadable Markdown file. Accepts **both** Bearer header and cookie auth
+(`get_current_project_combined`), so the UI can link to it with a plain
+`<a href download>`.
+
+**Response (200 OK):**
+
+- `Content-Type: text/markdown; charset=utf-8`
+- `Content-Disposition: attachment; filename="{slugified-project-name}-{YYYYMMDD}.md"`
+- Body: the assembled Markdown document
+
+**Error Codes:**
+
+- `401 Unauthorized`
+- `403 Forbidden` — Not project owner
+- `404 Not Found` — Project not found
+
+---
+
+## Rate Limiting
+
+All rate limits are Redis-backed fixed windows implemented in
+`app/core/rate_limiter.py`.
+
+| Scope | Applies to | Key | Defaults |
+| ----- | ---------- | --- | -------- |
+| `auth_rate_limit` | `POST /api/v1/auth/register`, `POST /api/v1/auth/login` | Client IP | 20 requests / 300 s |
+| `ai_rate_limit` | roadmap, explain, summarise, suggest-tags, search-semantic | `user:{id}` when authenticated, else client IP | 10 requests / 60 s |
+
+**Response headers (always set, including successful requests):**
+
+- `X-RateLimit-Limit` — max requests in the window
+- `X-RateLimit-Remaining` — remaining quota (`unknown` if Redis is down and fail-open is active)
+
+**When the limit is exceeded — `429 Too Many Requests`:**
+
+```
+Retry-After: <seconds until window resets>
+X-RateLimit-Limit: 10
+X-RateLimit-Remaining: 0
+```
+
+```json
+{ "detail": "Too many requests. Please try again later." }
+```
+
+**Redis unavailable:** governed by `RATE_LIMITER_FAIL_OPEN` — `true` (default) allows the request (with `X-RateLimit-Remaining: unknown`); `false` returns `503 Service Unavailable`.
+
+---
+
 ## Error Codes Summary
 
 | Code    | Meaning                                                  |
@@ -780,7 +1136,9 @@ Full-text search across notes and saved links in the current project using Postg
 | `404` | Not Found — Resource doesn't exist in scope             |
 | `409` | Conflict — Duplicate resource (email, tag name)         |
 | `422` | Unprocessable Entity — Pydantic validation error        |
-| `502` | Bad Gateway — External service (SearXNG) failed         |
+| `429` | Too Many Requests — Rate limit exceeded (see Rate Limiting) |
+| `502` | Bad Gateway — External service (SearXNG, AI provider) failed |
+| `503` | Service Unavailable — Rate limiter unavailable and fail-open disabled |
 | `504` | Gateway Timeout — External service timeout              |
 
 ---
@@ -836,6 +1194,8 @@ Full-text search across notes and saved links in the current project using Postg
   "search_query": "string|null",
   "extracted_content": "string|null",
   "extraction_status": "pending|completed|failed",
+  "status": "to_read|reading|done|archived",
+  "summary": "string|null",
   "created_at": "datetime",
   "tags": [TagResponse]
 }
@@ -882,6 +1242,102 @@ Full-text search across notes and saved links in the current project using Postg
   "snippet": "string",
   "engine": "string"
 }
+```
+
+### SemanticSearchResult
+
+Same as `CollectedSearchResult` plus:
+
+```json
+{
+  "semantic": true
+}
+```
+
+### RoadmapRequest / RoadmapResponse
+
+```json
+{ "subject": "string" }
+```
+
+```json
+{
+  "roadmap": [
+    { "step": "string", "keywords": ["string"] }
+  ]
+}
+```
+
+### BulkTagsRequest / BulkTagsResponse
+
+```json
+{
+  "item_type": "notes|links",
+  "item_ids": ["uuid"],
+  "action": "add|remove",
+  "tag_ids": ["uuid"]
+}
+```
+
+```json
+{
+  "updated_items": ["uuid"],
+  "applied_tags": ["uuid"],
+  "action": "add|remove"
+}
+```
+
+### TagSuggestionRequest / TagSuggestionResponse
+
+```json
+{
+  "title": "string|null",
+  "content": "string",
+  "content_type": "string"
+}
+```
+
+```json
+{
+  "suggested_tags": ["string"]
+}
+```
+
+### ExplainRequest / HighlightRead
+
+```json
+{
+  "selected_text": "string",
+  "start_offset": 0,
+  "end_offset": 0
+}
+```
+
+```json
+{
+  "id": "uuid",
+  "link_id": "uuid",
+  "selected_text": "string",
+  "annotation": "string|null",
+  "start_offset": 0,
+  "end_offset": 0,
+  "color": "string|null",
+  "created_at": "datetime"
+}
+```
+
+### LinkStatusUpdate / LinkStatusResponse / LinkSummaryResponse
+
+```json
+{ "status": "to_read|reading|done|archived" }
+```
+
+```json
+{ "id": "uuid", "status": "to_read|reading|done|archived" }
+```
+
+```json
+{ "id": "uuid", "summary": "string" }
 ```
 
 ---
