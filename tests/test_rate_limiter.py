@@ -138,9 +138,8 @@ async def test_dependency_falls_back_to_ip_for_anonymous_callers() -> None:
         with pytest.raises(HTTPException):
             await dependency(request, Response(), None)
 
-
 # ---------------------------------------------------------------------------
-# Redis-unavailable fallback (fail open)
+# Redis-unavailable fallback behaviour
 # ---------------------------------------------------------------------------
 
 
@@ -156,23 +155,38 @@ class _BrokenRedis:
 
 
 @pytest.mark.asyncio
-async def test_check_rate_limit_fails_open_when_redis_unavailable() -> None:
-    with patch("app.core.rate_limiter.redis_client", _BrokenRedis()):
+async def test_check_rate_limit_fails_open_when_configured() -> None:
+    with patch("app.core.rate_limiter.redis_client", _BrokenRedis()), \
+         patch("app.core.rate_limiter.settings.RATE_LIMITER_FAIL_OPEN", True):
         result = await rate_limiter.check_rate_limit(
             "some-key", max_requests=5, window_seconds=60
         )
 
     assert result.allowed is True
-    assert result.remaining == -1  # unknown quota
+    assert result.remaining == -1
     assert result.retry_after_seconds == 60
 
 
 @pytest.mark.asyncio
-async def test_dependency_reports_unknown_remaining_when_redis_unavailable() -> None:
+async def test_check_rate_limit_fails_closed_when_configured() -> None:
+    with patch("app.core.rate_limiter.redis_client", _BrokenRedis()), \
+         patch("app.core.rate_limiter.settings.RATE_LIMITER_FAIL_OPEN", False):
+        with pytest.raises(HTTPException) as exc_info:
+            await rate_limiter.check_rate_limit(
+                "some-key", max_requests=5, window_seconds=60
+            )
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Rate limiter unavailable"
+
+
+@pytest.mark.asyncio
+async def test_dependency_reports_unknown_remaining_when_failing_open() -> None:
     dependency = rate_limiter.create_rate_limit_dependency("dep", max_requests=5, window_seconds=60)
     response = Response()
 
-    with patch("app.core.rate_limiter.redis_client", _BrokenRedis()):
+    with patch("app.core.rate_limiter.redis_client", _BrokenRedis()), \
+         patch("app.core.rate_limiter.settings.RATE_LIMITER_FAIL_OPEN", True):
         await dependency(_make_request(), response, None)
 
     assert response.headers["X-RateLimit-Limit"] == "5"
