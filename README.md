@@ -6,7 +6,7 @@
 
 # Research Vault
 
-A self-hosted research and knowledge management platform you can run on your own machine. No AI, no cloud dependencies, no subscriptions. Just you, your ideas, and a clean API to organize them.
+A self-hosted research and knowledge management platform you can run on your own machine. Collect web research, extract and read articles distraction-free, highlight passages, take notes — with **optional** one-shot AI helpers (summaries, roadmaps, semantic search) that stay out of the way when unconfigured.
 
 > ⚠️ **Active development** – new features land every few days. Check back often or star the repo to follow along.
 
@@ -20,13 +20,13 @@ Research Vault helps you collect, organize, and rediscover information from the 
 
 **It is NOT**
 
-- an AI chatbot or LLM wrapper
+- an AI chatbot or LLM wrapper (AI features are one-shot helpers, never conversation)
 - a SaaS product
 - a complex multi‑user collaboration tool
 
 **It IS**
 
-- a focused, offline‑capable research tool you host yourself
+- a self-hosted research tool you fully control
 - a showcase of modern backend engineering (FastAPI, async Python, clean architecture)
 - completely free and open source
 
@@ -39,34 +39,32 @@ All of the following are implemented and tested:
 - **User authentication** – register, login, JWT-protected endpoints
 - **Research projects** – create isolated containers for different topics
 - **Notes** – write plain‑text notes inside any project (full CRUD)
-- **Tags** – organize notes with per‑project tags (attach/detach, list)
-- **User isolation** – every request is scoped to the logged‑in user
+- **Tags** – per-project tags on notes *and* links, plus **bulk tag operations**
+- **Web search & link saving** – search via self-hosted SearXNG, save results with automatic background article extraction
+- **Reader mode & highlights** – distraction-free reading with colored highlights and annotations
+- **Reading-list statuses** – `to_read` / `reading` / `done` / `archived` workflow states with filtering
+- **Full-text search** – PostgreSQL FTS across notes and links, ranked by relevance
+- **Markdown export** – compile a whole project (notes, links, highlights) into one downloadable `.md` file
+- **AI-powered helpers** *(optional — set any provider API key to enable)*:
+  - **Research Kickstart** – type a topic, get an AI-generated learning roadmap with search keywords (Redis-cached)
+  - **Summarise this article** – short AI summary stored on the saved link
+  - **“Explain this” highlight** – select a passage in the reader, get a concise explanation saved as an annotation
+  - **Tag suggestions** – AI picks up to 3 tags from your existing vocabulary
+  - **Semantic search** – full-text results reranked by meaning; falls back to plain FTS when AI is unavailable
+- **Rate limiting** – Redis-backed fixed-window limits on auth (brute-force protection) and all AI endpoints
+- **User isolation** – every request is scoped to the logged-in user
 - **Full test suite** – async integration tests for all endpoints
 - **Docker Compose** – one command to start the whole stack
 
+AI providers work via a waterfall fallback: set any of `OPENROUTER_API_KEY`, `HF_API_KEY`, or `GROQ_API_KEY` in your `.env`. With none set, the app works perfectly fine without any AI features.
+
 ## Coming soon
 
-These features are planned or under active consideration.
-They’re all designed to make research flow smoother without turning the app into something it’s not.
+These are planned or under active consideration:
 
-### Upcoming features
-
-- **Research Kickstart** – type a topic you want to learn and get an AI‑generated roadmap with suggested search keywords, so you never start your research from scratch.
-- **Markdown export (whole project)** – compile a project’s notes, saved links, highlights, and annotations into a single Markdown file. Great for archiving, sharing, or importing into other tools.
-- **Bulk tag operations** – select multiple notes and links to apply or remove tags in one go. Organise faster.
-- **Reading‑list statuses** – built‑in workflow states for links (e.g., “to‑read”, “reading”, “done”, “archived”). More than just tags – these can drive filtered views and reminders.
-- **Full‑text PDF / EPUB extraction** – expand the background extraction pipeline to handle PDFs and EPUBs, not just web pages. Your reading stays inside the vault.
-- **Progressive Web App (PWA)** – work offline on your mobile device and sync automatically when you’re back online. Read and annotate anywhere.
-
-### AI‑powered features (under consideration)
-
-All AI features are designed as **one‑shot helpers**, not chatbots. They’re there when you need them, invisible when you don’t.
-
-- 
-- **Tag suggestion** – when you save a link or write a note, the system can suggest relevant tags based on your existing vocabulary. You always approve or reject them.
-- **Smart summarisation** – a “Summarise this article” button that generates a short summary from the extracted content and saves it as a note, linked to the source.
-- **Semantic search** – optional upgrade to full‑text search that understands meaning, not just keywords. Still search, not conversation.
-- **“Explain this” highlight** – in the reader, select a passage and click “Explain this” to get a concise explanation saved as an annotation.
+- **Full‑text PDF / EPUB extraction** – expand the extraction pipeline beyond web pages.
+- **Progressive Web App (PWA)** – work offline on mobile, sync when back online.
+- **New frontend** – a modern JS frontend to replace the server-rendered HTMX UI (see `UI-SPEC.md`).
 
 ---
 
@@ -78,11 +76,13 @@ All AI features are designed as **one‑shot helpers**, not chatbots. They’re 
 | Database         | PostgreSQL 16 + SQLAlchemy 2.0 (async)                            |
 | Migrations       | Alembic                                                           |
 | Validation       | Pydantic v2                                                       |
-| Caching / broker | Redis                                                             |
+| Caching / broker / rate limiting | Redis                                             |
 | Background tasks | Celery (using Redis as broker)                                    |
+| AI providers     | Hugging Face Inference Client, OpenRouter, Groq (optional keys)   |
 | Search engine    | SearXNG (self‑hosted)                                            |
+| UI               | Server-rendered Jinja2 + HTMX + Pico.css                          |
 | Containerization | Docker Compose                                                    |
-| Auth             | JWT via`python-jose`, password hashing with `passlib[bcrypt]` |
+| Auth             | JWT via `python-jose`, password hashing with `passlib[bcrypt]`    |
 
 ---
 
@@ -97,13 +97,14 @@ git clone https://github.com/aminodinakbari/research-vault.git
 cd research-vault
 ```
 
-## 2. Set up environment
+### 2. Set up environment
 
 ```bash
 cp .env.example .env
+# optional: add one AI provider key (OPENROUTER_API_KEY / HF_API_KEY / GROQ_API_KEY)
 ```
 
-## 3. Start everything
+### 3. Start everything
 
 ```bash
 docker compose up -d
@@ -114,18 +115,18 @@ This launches:
 - The FastAPI app (on http://localhost:8000)
 - PostgreSQL
 - Redis
-- SearXNG (for future search features)
-- A Celery worker (for background tasks)
+- SearXNG (web search)
+- A Celery worker (for background extraction tasks)
 
-## 4. Run database migrations
+### 4. Run database migrations
 
 ```bash
 docker compose exec app alembic upgrade head
 ```
 
-## 5. Open the interactive API docs
+### 5. Open the interactive API docs
 
-Go to [http://localhost:8000/docs].
+Go to http://localhost:8000/docs.
 You can register a user, create projects, write notes, and explore every endpoint directly from the browser.
 
 ---
@@ -134,11 +135,13 @@ You can register a user, create projects, write notes, and explore every endpoin
 
 Once the app is running:
 
-- Use POST /api/v1/auth/register to create an account.
-- Use POST /api/v1/auth/login to get a JWT token, then click Authorize in Swagger and paste it.
-- Create a project with POST /api/v1/projects.
-- Inside that project, create notes with POST /api/v1/projects/{id}/notes.
-- Manage tags with the /tags endpoints, and attach them to notes.
+1. `POST /api/v1/auth/register` to create an account.
+2. `POST /api/v1/auth/login` to get a JWT token, then click *Authorize* in Swagger and paste it.
+3. Create a project with `POST /api/v1/projects`.
+4. Search the web with `POST /api/v1/projects/{id}/search` and save results as links.
+5. Write notes (`.../notes`), manage tags (`.../tags`), try AI endpoints like `/roadmap` or `.../links/{link_id}/summarise`.
+
+For full endpoint documentation see [`API-SPEC.md`](API-SPEC.md); architecture details are in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
