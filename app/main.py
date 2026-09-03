@@ -18,6 +18,8 @@ from app.core.templates import templates  # noqa: F401  (canonical Jinja2Templat
 from app.db.base import Base
 from app.db.session import engine
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # Import every model before configuring mappers so relationship() strings
 # resolve, and so any broken relationship raises here at import time instead
 # of lazily on first query.
@@ -70,3 +72,16 @@ app.include_router(ui_project_router)
 @app.get("/health", tags=["health"])
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+origins = [
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,       
+    allow_credentials=True,      
+    allow_methods=["*"],         
+    allow_headers=["*"],         
+)
