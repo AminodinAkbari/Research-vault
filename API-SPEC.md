@@ -32,7 +32,7 @@ All endpoints under `/api/v1/projects/**`, `/api/v1/notes/**`, `/api/v1/tags/**`
 
 **Rate limits:** register/login are IP-keyed (`AUTH_RATE_LIMIT_*`); all AI-backed endpoints share one per-user (or per-IP) budget (`AI_RATE_LIMIT_*`). Exceeding either returns `429 Too Many Requests` with `Retry-After`. See [Rate Limiting](#rate-limiting).
 
-### POST /api/v1/auth/register
+### `POST /api/v1/auth/register`
 
 Register a new user account.
 
@@ -65,7 +65,7 @@ Register a new user account.
 
 ---
 
-### POST /api/v1/auth/login
+### `POST /api/v1/auth/login`
 
 Authenticate and receive JWT token.
 
@@ -105,7 +105,7 @@ Authenticate and receive JWT token.
 All project endpoints require authentication (JWT or cookie).
 **Base path:** `/api/v1/projects`
 
-### POST /api/v1/projects
+### `POST /api/v1/projects`
 
 Create a new project owned by the current user.
 
@@ -136,7 +136,7 @@ Create a new project owned by the current user.
 
 ---
 
-### GET /api/v1/projects
+### `GET /api/v1/projects`
 
 List all projects owned by the current user.
 
@@ -156,7 +156,7 @@ List all projects owned by the current user.
 
 ---
 
-### GET /api/v1/projects/
+### `GET /api/v1/projects/{project_id}`
 
 Get a single project by ID. Requires ownership.
 
@@ -184,7 +184,7 @@ Get a single project by ID. Requires ownership.
 
 ---
 
-### PUT /api/v1/projects/
+### `PUT /api/v1/projects/{project_id}`
 
 Partially update a project.
 
@@ -221,7 +221,7 @@ Partially update a project.
 
 ---
 
-### DELETE /api/v1/projects/
+### `DELETE /api/v1/projects/{project_id}`
 
 Delete a project and all its notes, links, tags, and highlights.
 
@@ -245,7 +245,7 @@ All note endpoints are scoped to a project.
 **Base path:** `/api/v1/projects/{project_id}/notes`
 Authentication required (project ownership enforced).
 
-### POST /api/v1/projects//notes
+### `POST /api/v1/projects/{project_id}/notes`
 
 Create a new note in the project.
 
@@ -294,7 +294,7 @@ Create a new note in the project.
 
 ---
 
-### GET /api/v1/projects//notes
+### `GET /api/v1/projects/{project_id}/notes`
 
 List all notes in the project.
 
@@ -319,7 +319,7 @@ List all notes in the project.
 
 ---
 
-### GET /api/v1/projects//notes/
+### `GET /api/v1/projects/{project_id}/notes/{note_id}`
 
 Get a single note by ID.
 
@@ -351,7 +351,7 @@ Get a single note by ID.
 
 ---
 
-### PUT /api/v1/projects//notes/
+### `PUT /api/v1/projects/{project_id}/notes/{note_id}`
 
 Partially update a note.
 
@@ -374,7 +374,7 @@ Partially update a note.
 
 ---
 
-### DELETE /api/v1/projects//notes/
+### `DELETE /api/v1/projects/{project_id}/notes/{note_id}`
 
 Delete a note.
 
@@ -386,7 +386,7 @@ Delete a note.
 
 ---
 
-### POST /api/v1/projects//notes//tags
+### `POST /api/v1/projects/{project_id}/notes/{note_id}/tags`
 
 Attach one or more tags to a note.
 
@@ -406,7 +406,7 @@ Attach one or more tags to a note.
 
 ---
 
-### DELETE /api/v1/projects//notes//tags/
+### `DELETE /api/v1/projects/{project_id}/notes/{note_id}/tags/{tag_id}`
 
 Detach a tag from a note.
 
@@ -429,7 +429,7 @@ All link endpoints are scoped to a project.
 **Base path:** `/api/v1/projects/{project_id}`
 Authentication required (project ownership enforced).
 
-### POST /api/v1/projects//search
+### `POST /api/v1/projects/{project_id}/search`
 
 Run an external web search via SearXNG.
 
@@ -466,7 +466,7 @@ Run an external web search via SearXNG.
 
 ---
 
-### POST /api/v1/projects//links
+### `POST /api/v1/projects/{project_id}/links`
 
 Save a new link to the project. Triggers async content extraction.
 
@@ -526,7 +526,7 @@ Save a new link to the project. Triggers async content extraction.
 
 ---
 
-### GET /api/v1/projects//links
+### `GET /api/v1/projects/{project_id}/links`
 
 List all saved links in the project.
 
@@ -563,7 +563,7 @@ List all saved links in the project.
 
 ---
 
-### GET /api/v1/projects//links/
+### `GET /api/v1/projects/{project_id}/links/{link_id}`
 
 Get a single saved link by ID.
 
@@ -575,7 +575,7 @@ Get a single saved link by ID.
 
 ---
 
-### DELETE /api/v1/projects//links/
+### `DELETE /api/v1/projects/{project_id}/links/{link_id}`
 
 Delete a saved link and its highlights.
 
@@ -587,7 +587,7 @@ Delete a saved link and its highlights.
 
 ---
 
-### POST /api/v1/projects//links//tags
+### `POST /api/v1/projects/{project_id}/links/{link_id}/tags`
 
 Attach tags to a saved link.
 
@@ -607,7 +607,7 @@ Attach tags to a saved link.
 
 ---
 
-### DELETE /api/v1/projects//links//tags/
+### `DELETE /api/v1/projects/{project_id}/links/{link_id}/tags/{tag_id}`
 
 Detach a tag from a saved link.
 
@@ -619,7 +619,7 @@ Detach a tag from a saved link.
 
 ---
 
-### POST /api/v1/projects//links//explain
+### `POST /api/v1/projects/{project_id}/links/{link_id}/explain`
 
 Generate an AI explanation for a selected text passage and store it as a
 highlight annotation on the link. Rate-limited under the shared AI budget.
@@ -668,7 +668,7 @@ highlight annotation on the link. Rate-limited under the shared AI budget.
 
 ---
 
-### POST /api/v1/projects//links//summarise
+### `POST /api/v1/projects/{project_id}/links/{link_id}/summarise`
 
 Summarise the link's extracted content with AI and persist it to the link's
 `summary` field. Rate-limited under the shared AI budget.
@@ -695,7 +695,7 @@ Summarise the link's extracted content with AI and persist it to the link's
 
 ---
 
-### PATCH /api/v1/projects//links//status
+### `PATCH /api/v1/projects/{project_id}/links/{link_id}/status`
 
 Update a saved link's reading-list status.
 
@@ -725,7 +725,7 @@ Update a saved link's reading-list status.
 
 ---
 
-### POST /api/v1/projects//bulk-tags
+### `POST /api/v1/projects/{project_id}/bulk-tags`
 
 Add or remove one or more tags across multiple notes or links in a single
 request. Idempotent: existing attachments are ignored on `add`, missing ones
@@ -777,7 +777,7 @@ All tag endpoints are scoped to a project.
 **Base path:** `/api/v1/projects/{project_id}/tags`
 Authentication required (project ownership enforced).
 
-### POST /api/v1/projects//tags
+### `POST /api/v1/projects/{project_id}/tags`
 
 Create a new tag in the project.
 
@@ -807,7 +807,7 @@ Create a new tag in the project.
 
 ---
 
-### GET /api/v1/projects//tags
+### `GET /api/v1/projects/{project_id}/tags`
 
 List all tags in the project.
 
@@ -826,7 +826,7 @@ List all tags in the project.
 
 ---
 
-### DELETE /api/v1/projects//tags/
+### `DELETE /api/v1/projects/{project_id}/tags/{tag_id}`
 
 Delete a tag by ID. Removes tag from all notes/links.
 
@@ -849,7 +849,7 @@ Authentication via cookie only.
 
 **Base path:** `/projects/{project_id}/links/{link_id}/highlights`
 
-### GET /projects//links//read
+### `GET /projects/{project_id}/links/{link_id}/read`
 
 Reader mode page displaying link content with highlights.
 
@@ -857,7 +857,7 @@ Reader mode page displaying link content with highlights.
 
 ---
 
-### POST /projects//links//highlights
+### `POST /projects/{project_id}/links/{link_id}/highlights`
 
 Create a highlight on a saved link's extracted content.
 
@@ -882,7 +882,7 @@ Create a highlight on a saved link's extracted content.
 
 ---
 
-### DELETE /projects//links//highlights/
+### `DELETE /projects/{project_id}/links/{link_id}/highlights/{highlight_id}`
 
 Delete a highlight.
 
@@ -896,7 +896,7 @@ Delete a highlight.
 
 ## Search
 
-### GET /api/v1/projects//search-collected
+### `GET /api/v1/projects/{project_id}/search-collected`
 
 Full-text search across notes and saved links in the current project using PostgreSQL FTS (tsvector/tsquery).
 
@@ -940,7 +940,7 @@ Full-text search across notes and saved links in the current project using Postg
 
 ---
 
-### POST /api/v1/projects//search-semantic
+### `POST /api/v1/projects/{project_id}/search-semantic`
 
 Full-text search across notes and links, reranked by semantic relevance with
 one AI call. Rate-limited under the shared AI budget.
@@ -984,7 +984,7 @@ one AI call. Rate-limited under the shared AI budget.
 
 ## AI Endpoints
 
-### POST /api/v1/roadmap
+### `POST /api/v1/roadmap`
 
 Generate an ordered learning roadmap for a subject. Project-independent (not
 nested under `/projects`). Rate-limited under the shared AI budget; keyed per
@@ -1034,7 +1034,7 @@ user when authenticated, per IP otherwise.
 
 ---
 
-### POST /api/v1/projects//suggest-tags
+### `POST /api/v1/projects/{project_id}/suggest-tags`
 
 Suggest up to 3 of the project's **existing** tags for a piece of content,
 using AI. Rate-limited under the shared AI budget.
@@ -1074,7 +1074,7 @@ using AI. Rate-limited under the shared AI budget.
 
 ## Export
 
-### GET /api/v1/projects//export/markdown
+### `GET /api/v1/projects/{project_id}/export/markdown`
 
 Export the entire project (notes, saved links, highlights) as a single
 downloadable Markdown file. Accepts **both** Bearer header and cookie auth
