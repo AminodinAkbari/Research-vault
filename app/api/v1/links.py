@@ -14,7 +14,7 @@ from app.schemas.bulk_tags import BulkTagsRequest, BulkTagsResponse
 from app.services import bulk_tags as bulk_tags_service
 from app.schemas.search import SearchQuery, SearchResult
 from app.schemas.tag import TagAttachRequest
-from app.schemas.highlights import ExplainRequest, HighlightRead
+from app.schemas.highlights import ExplainRequest, HighlightRead, HighlightCreate
 from app.models.link import ReadingStatus
 from app.services import link as link_service
 from app.services import highlight as highlight_service
@@ -225,6 +225,60 @@ async def summarise_link_endpoint(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Summarisation service unavailable",
         ) from exc
+
+
+@router.get("/links/{link_id}/highlights", response_model=list[HighlightRead])
+async def list_highlights(
+    link_id: uuid.UUID,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> list[HighlightRead]:
+    try:
+        await link_service.get_link(db, project_id=project.id, link_id=link_id)
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found") from exc
+    return await highlight_service.list_highlights(db, link_id=link_id)
+
+
+@router.post("/links/{link_id}/highlights", response_model=HighlightRead, status_code=status.HTTP_201_CREATED)
+async def create_highlight(
+    link_id: uuid.UUID,
+    payload: HighlightCreate,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> HighlightRead:
+    try:
+        link = await link_service.get_link(db, project_id=project.id, link_id=link_id)
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found") from exc
+    if not payload.selected_text.strip():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="selected_text must not be empty")
+    return await highlight_service.create_highlight(
+        db,
+        link_id=link.id,
+        selected_text=payload.selected_text.strip(),
+        annotation=payload.annotation.strip() if payload.annotation else None,
+        start_offset=payload.start_offset,
+        end_offset=payload.end_offset,
+        color=payload.color,
+    )
+
+
+@router.delete("/links/{link_id}/highlights/{highlight_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_highlight(
+    link_id: uuid.UUID,
+    highlight_id: uuid.UUID,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    try:
+        await link_service.get_link(db, project_id=project.id, link_id=link_id)
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found") from exc
+    try:
+        await highlight_service.delete_highlight(db, link_id=link_id, highlight_id=highlight_id)
+    except highlight_service.HighlightNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Highlight not found") from exc
 
 
 @router.patch("/links/{link_id}/status", response_model=LinkStatusResponse)

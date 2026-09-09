@@ -20,3 +20,11 @@ class HighlightRead(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class HighlightCreate(BaseModel):
+    selected_text: str
+    annotation: str | None = None
+    start_offset: int = 0
+    end_offset: int = 0
+    color: str | None = None

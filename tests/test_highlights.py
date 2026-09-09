@@ -27,11 +27,12 @@ async def _create_project_via_ui(client: AsyncClient, name: str = "Highlight Pro
     return next(p for p in api_resp.json() if p["name"] == name)["id"]
 
 
-async def _create_link_via_api(client: AsyncClient, project_id: str) -> str:
+async def _create_link_via_api(client: AsyncClient, project_id: str, headers: dict | None = None) -> str:
     with patch("app.services.link.extract_link_content.delay"):
         response = await client.post(
             f"/api/v1/projects/{project_id}/links",
             json={"url": "https://example.com/article", "title": "Article"},
+            headers=headers,
         )
     assert response.status_code == 201
     return response.json()["id"]
@@ -125,3 +126,169 @@ async def test_highlights_require_project_ownership(client: AsyncClient) -> None
         data={"selected_text": "x", "annotation": "", "start_offset": "0", "end_offset": "1"},
     )
     assert response.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# JSON API tests
+# ---------------------------------------------------------------------------
+
+
+async def _create_project_via_api(client: AsyncClient, headers: dict, name: str = "API Project") -> str:
+    response = await client.post("/api/v1/projects", json={"name": name}, headers=headers)
+    return response.json()["id"]
+
+
+@pytest.mark.asyncio
+async def test_create_highlight_via_api(client: AsyncClient, make_user) -> None:
+    _, headers = await make_user()
+    project_id = await _create_project_via_api(client, headers)
+    link_id = await _create_link_via_api(client, project_id, headers)
+
+    response = await client.post(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
+        json={
+            "selected_text": "important passage",
+            "annotation": "worth remembering",
+            "start_offset": 10,
+            "end_offset": 31,
+            "color": "yellow",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["selected_text"] == "important passage"
+    assert body["annotation"] == "worth remembering"
+    assert body["start_offset"] == 10
+    assert body["end_offset"] == 31
+    assert body["color"] == "yellow"
+    assert "id" in body
+    assert "created_at" in body
+
+
+@pytest.mark.asyncio
+async def test_list_highlights_via_api(client: AsyncClient, make_user) -> None:
+    _, headers = await make_user()
+    project_id = await _create_project_via_api(client, headers)
+    link_id = await _create_link_via_api(client, project_id, headers)
+
+    await client.post(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
+        json={"selected_text": "first", "start_offset": 0, "end_offset": 5},
+        headers=headers,
+    )
+    await client.post(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
+        json={"selected_text": "second", "start_offset": 10, "end_offset": 16},
+        headers=headers,
+    )
+
+    response = await client.get(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    highlights = response.json()
+    assert len(highlights) == 2
+    assert {h["selected_text"] for h in highlights} == {"first", "second"}
+
+
+@pytest.mark.asyncio
+async def test_delete_highlight_via_api(client: AsyncClient, make_user) -> None:
+    _, headers = await make_user()
+    project_id = await _create_project_via_api(client, headers)
+    link_id = await _create_link_via_api(client, project_id, headers)
+
+    create_resp = await client.post(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
+        json={"selected_text": "to delete", "start_offset": 0, "end_offset": 9},
+        headers=headers,
+    )
+    highlight_id = create_resp.json()["id"]
+
+    delete_resp = await client.delete(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights/{highlight_id}",
+        headers=headers,
+    )
+    assert delete_resp.status_code == 204
+
+    list_resp = await client.get(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
+        headers=headers,
+    )
+    assert list_resp.status_code == 200
+    assert len(list_resp.json()) == 0
+
+
+@pytest.mark.asyncio
+async def test_delete_unknown_highlight_via_api_returns_404(client: AsyncClient, make_user) -> None:
+    _, headers = await make_user()
+    project_id = await _create_project_via_api(client, headers)
+    link_id = await _create_link_via_api(client, project_id, headers)
+
+    response = await client.delete(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights/00000000-0000-0000-0000-000000000000",
+        headers=headers,
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_highlights_api_requires_project_ownership(client: AsyncClient, make_user) -> None:
+    owner, owner_headers = await make_user()
+    project_id = await _create_project_via_api(client, owner_headers, name="Owner's Project")
+    link_id = await _create_link_via_api(client, project_id, owner_headers)
+
+    intruder, intruder_headers = await make_user()
+
+    list_resp = await client.get(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
+        headers=intruder_headers,
+    )
+    assert list_resp.status_code == 403
+
+    create_resp = await client.post(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
+        json={"selected_text": "x", "start_offset": 0, "end_offset": 1},
+        headers=intruder_headers,
+    )
+    assert create_resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_highlights_api_requires_auth(client: AsyncClient, make_user) -> None:
+    _, headers = await make_user()
+    project_id = await _create_project_via_api(client, headers)
+    link_id = await _create_link_via_api(client, project_id, headers)
+
+    response = await client.get(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_create_highlight_on_nonexistent_link_returns_404(client: AsyncClient, make_user) -> None:
+    _, headers = await make_user()
+    project_id = await _create_project_via_api(client, headers)
+
+    response = await client.post(
+        f"/api/v1/projects/{project_id}/links/00000000-0000-0000-0000-000000000000/highlights",
+        json={"selected_text": "x", "start_offset": 0, "end_offset": 1},
+        headers=headers,
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_create_highlight_empty_selected_text_returns_422(client: AsyncClient, make_user) -> None:
+    _, headers = await make_user()
+    project_id = await _create_project_via_api(client, headers)
+    link_id = await _create_link_via_api(client, project_id, headers)
+
+    response = await client.post(
+        f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
+        json={"selected_text": "   ", "start_offset": 0, "end_offset": 1},
+        headers=headers,
+    )
+    assert response.status_code == 422
