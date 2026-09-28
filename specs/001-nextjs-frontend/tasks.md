@@ -54,26 +54,28 @@ implemented, tested, and delivered independently.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T009 Add frontend dev origins to CORS allowlist in `app/main.py` (append `"http://localhost:3000"` and `"http://127.0.0.1:3000"` to the existing `origins` list; leave the 4200 origins untouched; no other backend file may change)
-- [ ] T010 [P] Create Zod schemas + TS types in `frontend/src/lib/types.ts` copied from `specs/001-nextjs-frontend/contracts/types.ts` (Project, Note, SavedLink, Tag, Highlight, SearchResult, auth, error envelope)
-- [ ] T011 [P] Create endpoint path/verb map in `frontend/src/lib/endpoints.ts` from `specs/001-nextjs-frontend/contracts/api-endpoints.md`
-- [ ] T012 Create typed API client in `frontend/src/lib/api.ts`: `apiFetch<T>()` with `credentials: 'include'`, parses Zod schemas, throws typed `ApiError(status, body)`, never logs or stores tokens (constitution: cookie only)
-- [ ] T013 [P] Define design tokens in `frontend/src/app/globals.css` + `frontend/tailwind.config.ts` per spec Design Direction: ONE neutral temperature (zinc), exactly ONE accent (locked app-wide), radius token 8–10px (pills ONLY for tag chips/status badges), 4px spacing scale, status colors (success/warning/danger) + six highlight colors exempt from accent lock, no pure #000000/#ffffff
-- [ ] T014 [P] Create Button component in `frontend/src/components/ui/Button.tsx` with full state cycle: hover, focus-visible ring, pressed (1px nudge or scale-98), disabled, in-flight (disabled while request pending)
-- [ ] T015 [P] Create Input component in `frontend/src/components/ui/Input.tsx`: visible label ABOVE input (never placeholder-as-label), error text BELOW input, gap-2 input block
-- [ ] T016 [P] Create Badge/TagChip components in `frontend/src/components/ui/Badge.tsx` (pill radius documented exception; status badge variants completed/pending/failed with existing UI colors)
-- [ ] T017 [P] Create Card component in `frontend/src/components/ui/Card.tsx` (elevation only where hierarchy demands; tinted shadows, no pure-black)
-- [ ] T018 [P] Create TabBar component in `frontend/src/components/ui/TabBar.tsx` with WAI-ARIA tablist roles, keyboard arrow navigation, aria-selected (parity with existing UI a11y)
-- [ ] T019 [P] Create EmptyState + LoadingSkeleton components in `frontend/src/components/ui/EmptyState.tsx` and `frontend/src/components/ui/LoadingSkeleton.tsx` (skeletons shaped like final layout — no bare spinners)
-- [ ] T020 [P] Create Toast provider in `frontend/src/components/providers/ToastProvider.tsx`: success/error feedback within 1s of server response (FR-026), aria-live announcements (FR-027)
-- [ ] T021 [P] Create ConfirmDialog in `frontend/src/components/ui/ConfirmDialog.tsx` (shared delete-confirm pattern; message passed per call site)
-- [ ] T022 [P] Create ThemeProvider in `frontend/src/components/providers/ThemeProvider.tsx`: light/dark, defaults to prefers-color-scheme, equal hierarchy + WCAG AA contrast both themes (SC-006)
-- [ ] T023 [P] Create QueryProvider in `frontend/src/components/providers/QueryProvider.tsx` (TanStack Query v5, cache invalidation for list refreshes)
-- [ ] T024 Create error helpers in `frontend/src/lib/errors.ts` (depends on T012): map status → user copy (401 → redirect login with "Session expired" message; 429 → "try again later" honoring Retry-After; network → "Something went wrong. Please try again.")
-- [ ] T025 Wire root layout in `frontend/src/app/layout.tsx`: ThemeProvider + QueryProvider + ToastProvider + Geist fonts (depends on T008, T020, T022, T023)
-- [ ] T026 [P] Create Icon wrapper in `frontend/src/components/ui/Icon.tsx` (Phosphor only, uniform stroke-width 1.5, aria-hidden; one icon family — no hand-rolled SVG, no emoji-as-icon)
+- [X] T009 Add frontend dev origins to CORS allowlist in `app/main.py` (append `"http://localhost:3000"` and `"http://127.0.0.1:3000"` to the existing `origins` list; leave the 4200 origins untouched; no other backend file may change)
+- [X] T010 [P] Create Zod schemas + TS types in `frontend/src/lib/types.ts` copied from `specs/001-nextjs-frontend/contracts/types.ts` (Project, Note, SavedLink, Tag, Highlight, SearchResult, auth, error envelope)
+- [X] T011 [P] Create endpoint path/verb map in `frontend/src/lib/endpoints.ts` from `specs/001-nextjs-frontend/contracts/api-endpoints.md`
+- [X] T012 Create typed API client in `frontend/src/lib/api.ts`: `apiFetch<T>()` with `credentials: 'include'`, parses Zod schemas, throws typed `ApiError(status, body)`, never logs or stores tokens (constitution: cookie only)
+- [X] T013 [P] Define design tokens in `frontend/src/app/globals.css` + `frontend/tailwind.config.ts` per spec Design Direction: ONE neutral temperature (zinc), exactly ONE accent (locked app-wide), radius token 8–10px (pills ONLY for tag chips/status badges), 4px spacing scale, status colors (success/warning/danger) + six highlight colors exempt from accent lock, no pure #000000/#ffffff
+- [X] T014 [P] Create Button component in `frontend/src/components/ui/Button.tsx` with full state cycle: hover, focus-visible ring, pressed (1px nudge or scale-98), disabled, in-flight (disabled while request pending)
+- [X] T015 [P] Create Input component in `frontend/src/components/ui/Input.tsx`: visible label ABOVE input (never placeholder-as-label), error text BELOW input, gap-2 input block
+- [X] T016 [P] Create Badge/TagChip components in `frontend/src/components/ui/Badge.tsx` (pill radius documented exception; status badge variants completed/pending/failed with existing UI colors)
+- [X] T017 [P] Create Card component in `frontend/src/components/ui/Card.tsx` (elevation only where hierarchy demands; tinted shadows, no pure-black)
+- [X] T018 [P] Create TabBar component in `frontend/src/components/ui/TabBar.tsx` with WAI-ARIA tablist roles, keyboard arrow navigation, aria-selected (parity with existing UI a11y)
+- [X] T019 [P] Create EmptyState + LoadingSkeleton components in `frontend/src/components/ui/EmptyState.tsx` and `frontend/src/components/ui/LoadingSkeleton.tsx` (skeletons shaped like final layout — no bare spinners)
+- [X] T020 [P] Create Toast provider in `frontend/src/components/providers/ToastProvider.tsx`: success/error feedback within 1s of server response (FR-026), aria-live announcements (FR-027)
+- [X] T021 [P] Create ConfirmDialog in `frontend/src/components/ui/ConfirmDialog.tsx` (shared delete-confirm pattern; message passed per call site)
+- [X] T022 [P] Create ThemeProvider in `frontend/src/components/providers/ThemeProvider.tsx`: light/dark, defaults to prefers-color-scheme, equal hierarchy + WCAG AA contrast both themes (SC-006)
+- [X] T023 [P] Create QueryProvider in `frontend/src/components/providers/QueryProvider.tsx` (TanStack Query v5, cache invalidation for list refreshes)
+- [X] T024 Create error helpers in `frontend/src/lib/errors.ts` (depends on T012): map status → user copy (401 → redirect login with "Session expired" message; 429 → "try again later" honoring Retry-After; network → "Something went wrong. Please try again.")
+- [X] T025 Wire root layout in `frontend/src/app/layout.tsx`: ThemeProvider + QueryProvider + ToastProvider + Geist fonts (depends on T008, T020, T022, T023)
+- [X] T026 [P] Create Icon wrapper in `frontend/src/components/ui/Icon.tsx` (Phosphor only, uniform stroke-width 1.5, aria-hidden; one icon family — no hand-rolled SVG, no emoji-as-icon)
 
 **Checkpoint**: Foundation ready — user story implementation can now begin
+
+**Phase 2 Complete**: T009–T026 all marked [X]
 
 ---
 
