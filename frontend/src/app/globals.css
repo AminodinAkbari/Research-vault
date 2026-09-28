@@ -1,3 +1,64 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  /* ONE neutral temperature: zinc */
+  --background: #ffffff;
+  --foreground: #18181b;
+
+  /* ONE accent (locked app-wide) */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-foreground: #ffffff;
+
+  /* Status colors (exempt from accent lock) */
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+
+  /* Muted surfaces */
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+
+  /* ONE radius token: 8px */
+  --radius: 8px;
+
+  /* Six highlight colors (exempt from accent lock) */
+  --highlight-yellow: #fff59d;
+  --highlight-blue: #b3e5fc;
+  --highlight-green: #c8e6c9;
+  --highlight-orange: #ffccbc;
+  --highlight-purple: #e1bee7;
+  --highlight-grey: #f0f0f0;
+}
+
+.dark {
+  --background: #18181b;
+  --foreground: #fafafa;
+
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-foreground: #ffffff;
+
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --border: #3f3f46;
+  --input: #3f3f46;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+  }
+}
