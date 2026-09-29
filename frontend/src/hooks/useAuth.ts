@@ -18,7 +18,7 @@ export function useAuth() {
   // Probe session by hitting an authenticated endpoint
   const probeSession = useCallback(async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000"}/api/v1/projects`, {
+      const res = await fetch("http://localhost:8000/api/v1/projects", {
         credentials: "include",
       });
       setState({ isAuthenticated: res.ok, isLoading: false });
