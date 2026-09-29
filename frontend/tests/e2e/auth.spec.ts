@@ -45,9 +45,9 @@ test.describe("Authentication", () => {
     await page.click('button[type="submit"]');
 
     // Inline error message
-    await expect(page.locator('[role="alert"]')).toContainText(
-      "Invalid email or password."
-    );
+    await expect(
+      page.getByText("Invalid email or password.")
+    ).toBeVisible();
 
     // Form input preserved
     await expect(emailInput).toHaveValue("wrong@example.com");
@@ -66,9 +66,7 @@ test.describe("Authentication", () => {
 
     // Client-side error — no request sent (stays on /register)
     await expect(page).toHaveURL(/\/register/);
-    await expect(page.locator('[role="alert"]')).toContainText(
-      "Passwords do not match"
-    );
+    await expect(page.getByText("Passwords do not match")).toBeVisible();
   });
 
   test("register validation: password less than 8 chars shows client-side error", async ({
@@ -82,9 +80,7 @@ test.describe("Authentication", () => {
     await page.click('button[type="submit"]');
 
     await expect(page).toHaveURL(/\/register/);
-    await expect(page.locator('[role="alert"]')).toContainText(
-      "at least 8 characters"
-    );
+    await expect(page.getByText("at least 8 characters")).toBeVisible();
   });
 
   test("register with duplicate email shows server 409 error inline", async ({
@@ -115,9 +111,11 @@ test.describe("Authentication", () => {
 
     // Server 409 error shown inline
     await expect(page).toHaveURL(/\/register/);
-    await expect(page.locator('[role="alert"]')).toContainText(
-      /already|exists|registered/i
-    );
+    await expect(
+      page
+        .locator('div[role="alert"]')
+        .filter({ hasText: /already|exists|registered/i })
+    ).toBeVisible();
   });
 
   test("logout destroys session and protects pages", async ({ page }) => {

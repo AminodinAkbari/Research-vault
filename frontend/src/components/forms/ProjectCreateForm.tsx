@@ -1,22 +1,22 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/components/providers/ToastProvider";
+import { useProjects } from "@/hooks/useProjects";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { ApiError } from "@/lib/types";
 
 interface ProjectCreateFormProps {
   onSuccess?: () => void;
 }
 
 export function ProjectCreateForm({ onSuccess }: ProjectCreateFormProps) {
-  const router = useRouter();
   const { success } = useToast();
+  const { createProject, isCreating } = useProjects();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -35,35 +35,28 @@ export function ProjectCreateForm({ onSuccess }: ProjectCreateFormProps) {
       return;
     }
 
-    setIsLoading(true);
     try {
-      const { createProject } = await import("@/hooks/useProjects");
-      // We need to access the hook differently - let's use a direct API call
-      const { apiFetch } = await import("@/lib/api");
-      const { endpoints } = await import("@/lib/endpoints");
-      const { ProjectRead, ProjectCreate } = await import("@/lib/types");
-
-      const newProject = await apiFetch(endpoints.projects, ProjectRead, {
-        method: "POST",
-        body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined }),
+      await createProject({
+        name: name.trim(),
+        description: description.trim() || undefined,
       });
 
       success("Project created!");
       setName("");
       setDescription("");
       onSuccess?.();
-      router.push(`/projects/${newProject.id}`);
-    } catch (err: any) {
-      if (err.status === 422) {
-        setError(err.body?.detail || "Please check your input.");
-      } else if (err.status === 401) {
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        setError(
+          typeof err.body.detail === "string"
+            ? err.body.detail
+            : "Please check your input."
+        );
+      } else if (err instanceof ApiError && err.status === 401) {
         setError("Session expired — please sign in again");
-        router.push("/login");
       } else {
         setError("Something went wrong. Please try again.");
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -87,7 +80,7 @@ export function ProjectCreateForm({ onSuccess }: ProjectCreateFormProps) {
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
-      <Button type="submit" isLoading={isLoading} className="w-full">
+      <Button type="submit" isLoading={isCreating} className="w-full">
         Create
       </Button>
     </form>

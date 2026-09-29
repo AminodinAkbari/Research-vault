@@ -86,7 +86,10 @@ export const TagCreate = z.object({
 });
 export type TagCreate = z.infer<typeof TagCreate>;
 
-export const TagResponse = TagRead; // embedded in Note/Link
+export const TagResponse = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(50),
+}); // embedded in Note/Link — backend returns { id, name } only
 export type TagResponse = z.infer<typeof TagResponse>;
 
 // ============================================================================

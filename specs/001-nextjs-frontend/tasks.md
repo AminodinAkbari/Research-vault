@@ -147,21 +147,23 @@ implemented, tested, and delivered independently.
 
 > Write these FIRST; confirm they FAIL before implementation
 
-- [ ] T045 [P] [US3] E2E notes spec covering all 6 US3 acceptance scenarios (create resets form, source-link select + preselect from ?source_link_id, inline edit save/cancel, delete-with-confirm removes, tag attach/detach updates immediately, loading placeholder + empty state) in `frontend/tests/e2e/notes.spec.ts`
+- [X] T045 [P] [US3] E2E notes spec covering all 6 US3 acceptance scenarios (create resets form, source-link select + preselect from ?source_link_id, inline edit save/cancel, delete-with-confirm removes, tag attach/detach updates immediately, loading placeholder + empty state) in `frontend/tests/e2e/notes.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T046 [P] [US3] Create useNotes hook in `frontend/src/hooks/useNotes.ts`: list/create/update/delete via /api/v1 notes endpoints; NoteCreate — title required 1–200 chars, content optional max 100000, source_link_id optional UUID; tag attach (tag_ids array) / detach (DELETE tags/{tag_id}); cache invalidation
-- [ ] T047 [P] [US3] Create useTags hook in `frontend/src/hooks/useTags.ts`: list/create/delete via /api/v1 tags endpoints; TagCreate — name required 1–50 chars, unique per project (409 shown inline: 'A tag named "X" already exists in this project.')
-- [ ] T048 [US3] Build NotesPanel in `frontend/src/components/notes/NotesPanel.tsx`: loading placeholder while fetching, empty state when no notes (FR-010, US3 scenario 6)
-- [ ] T049 [P] [US3] Create NoteCreateForm in `frontend/src/components/notes/NoteCreateForm.tsx`: required title, optional content, source-link dropdown populated from project's links, preselect when ?source_link_id present (FR-011, FR-009); form resets on success
-- [ ] T050 [P] [US3] Create NoteListItem in `frontend/src/components/notes/NoteListItem.tsx`: title, content preview truncated at 200 chars with ellipsis or "(No content)", source link navigates to reader, attached tag badges (FR-012)
-- [ ] T051 [US3] Create NoteEditForm in `frontend/src/components/notes/NoteEditForm.tsx`: inline prefilled edit (title/content/source link), save updates in place, cancel restores previous view (FR-013)
-- [ ] T052 [US3] Wire note delete in `frontend/src/components/notes/NoteListItem.tsx` with ConfirmDialog using exact copy "Delete this note? This cannot be undone."; list updates immediately (FR-013)
-- [ ] T053 [US3] Create TagAttachPicker in `frontend/src/components/notes/TagAttachPicker.tsx`: available tags = project tags minus attached; select attaches immediately, badge × detaches immediately (FR-014)
-- [ ] T054 [P] [US3] Build TagsPanel in `frontend/src/components/tags/TagsPanel.tsx`: create tag form, tags list, delete with confirm copy 'Delete tag "X"? It will be removed from all notes.'; list updates without reloads (FR-019)
+- [X] T046 [P] [US3] Create useNotes hook in `frontend/src/hooks/useNotes.ts`: list/create/update/delete via /api/v1 notes endpoints; NoteCreate — title required 1–200 chars, content optional max 100000, source_link_id optional UUID; tag attach (tag_ids array) / detach (DELETE tags/{tag_id}); cache invalidation
+- [X] T047 [P] [US3] Create useTags hook in `frontend/src/hooks/useTags.ts`: list/create/delete via /api/v1 tags endpoints; TagCreate — name required 1–50 chars, unique per project (409 shown inline: 'A tag named "X" already exists in this project.')
+- [X] T048 [US3] Build NotesPanel in `frontend/src/components/notes/NotesPanel.tsx`: loading placeholder while fetching, empty state when no notes (FR-010, US3 scenario 6)
+- [X] T049 [P] [US3] Create NoteCreateForm in `frontend/src/components/notes/NoteCreateForm.tsx`: required title, optional content, source-link dropdown populated from project's links, preselect when ?source_link_id present (FR-011, FR-009); form resets on success
+- [X] T050 [P] [US3] Create NoteListItem in `frontend/src/components/notes/NoteListItem.tsx`: title, content preview truncated at 200 chars with ellipsis or "(No content)", source link navigates to reader, attached tag badges (FR-012)
+- [X] T051 [US3] Create NoteEditForm in `frontend/src/components/notes/NoteEditForm.tsx`: inline prefilled edit (title/content/source link), save updates in place, cancel restores previous view (FR-013)
+- [X] T052 [US3] Wire note delete in `frontend/src/components/notes/NoteListItem.tsx` with ConfirmDialog using exact copy "Delete this note? This cannot be undone."; list updates immediately (FR-013)
+- [X] T053 [US3] Create TagAttachPicker in `frontend/src/components/notes/TagAttachPicker.tsx`: available tags = project tags minus attached; select attaches immediately, badge × detaches immediately (FR-014)
+- [X] T054 [P] [US3] Build TagsPanel in `frontend/src/components/tags/TagsPanel.tsx`: create tag form, tags list, delete with confirm copy 'Delete tag "X"? It will be removed from all notes.'; list updates without reloads (FR-019)
 
 **Checkpoint**: US3 fully functional (notes + tags management)
+
+**Phase 5 Complete**: T045–T054 all marked [X]
 
 ---
 

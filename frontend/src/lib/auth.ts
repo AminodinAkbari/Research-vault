@@ -1,5 +1,5 @@
 import { apiFetch, apiFetchRaw } from "./api";
-import { endpoints } from "./endpoints";
+import { endpoints, htmlEndpoints } from "./endpoints";
 import { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from "./types";
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
@@ -17,7 +17,7 @@ export async function register(data: RegisterRequest): Promise<RegisterResponse>
 }
 
 export async function logout(): Promise<void> {
-  const res = await apiFetchRaw(endpoints.logout, {
+  const res = await apiFetchRaw(htmlEndpoints.logout, {
     method: "POST",
     redirect: "follow",
   });

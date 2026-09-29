@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "./Button";
 
 export interface ConfirmDialogProps {

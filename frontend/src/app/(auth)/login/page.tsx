@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { ApiError } from "@/lib/types";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
@@ -23,8 +24,8 @@ export default function LoginPage() {
     try {
       await login({ email, password });
       router.push("/dashboard");
-    } catch (err: any) {
-      const status = err?.status;
+    } catch (err) {
+      const status = err instanceof ApiError ? err.status : undefined;
       if (status === 401) {
         setError("Invalid email or password.");
       } else {

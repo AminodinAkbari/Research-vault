@@ -29,8 +29,8 @@ test.describe("Projects Dashboard", () => {
     const projectDescription = "A test description";
 
     // Fill and submit create form
-    await page.fill('[name="name"]', projectName);
-    await page.fill('[name="description"]', projectDescription);
+    await page.fill('form [name="name"]', projectName);
+    await page.fill('form [name="description"]', projectDescription);
     await page.click('button[type="submit"]:has-text("Create")');
 
     // Should not navigate away - still on dashboard
@@ -41,10 +41,10 @@ test.describe("Projects Dashboard", () => {
     await expect(page.locator(`text=${projectDescription}`)).toBeVisible();
 
     // Form resets
-    const nameInput = page.locator('[name="name"]');
+    const nameInput = page.locator('form [name="name"]');
     await expect(nameInput).toHaveValue("");
 
-    const descInput = page.locator('[name="description"]');
+    const descInput = page.locator('form [name="description"]');
     await expect(descInput).toHaveValue("");
   });
 
@@ -52,13 +52,13 @@ test.describe("Projects Dashboard", () => {
     page,
   }) => {
     // Create two projects
-    await page.fill('[name="name"]', "Project One");
-    await page.fill('[name="description"]', "First description");
+    await page.fill('form [name="name"]', "Project One");
+    await page.fill('form [name="description"]', "First description");
     await page.click('button[type="submit"]:has-text("Create")');
     await expect(page.locator('text="Project One"')).toBeVisible();
 
-    await page.fill('[name="name"]', "Project Two");
-    await page.fill('[name="description"]', "Second description");
+    await page.fill('form [name="name"]', "Project Two");
+    await page.fill('form [name="description"]', "Second description");
     await page.click('button[type="submit"]:has-text("Create")');
     await expect(page.locator('text="Project Two"')).toBeVisible();
 
@@ -72,12 +72,12 @@ test.describe("Projects Dashboard", () => {
       day: "numeric",
       year: "numeric",
     });
-    await expect(page.locator(`text=${today}`)).toBeVisible();
+    await expect(page.locator(`text=${today}`).first()).toBeVisible();
   });
 
   test("clicking project navigates to workspace", async ({ page }) => {
     const projectName = "Workspace Test";
-    await page.fill('[name="name"]', projectName);
+    await page.fill('form [name="name"]', projectName);
     await page.click('button[type="submit"]:has-text("Create")');
     await expect(page.locator(`text=${projectName}`)).toBeVisible();
 
@@ -88,10 +88,10 @@ test.describe("Projects Dashboard", () => {
     await expect(page).toHaveURL(/\/projects\/[a-f0-9-]+/);
 
     // Workspace should have project header and four tabs
-    await expect(page.locator("text=Notes")).toBeVisible();
-    await expect(page.locator("text=Links")).toBeVisible();
-    await expect(page.locator("text=Web Search")).toBeVisible();
-    await expect(page.locator("text=Tags")).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Notes" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Links" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Web Search" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Tags" })).toBeVisible();
   });
 
   test("non-existent project ID shows not-found view", async ({ page }) => {
@@ -99,13 +99,13 @@ test.describe("Projects Dashboard", () => {
     await page.goto(`/projects/${fakeId}`);
 
     // Should show not-found view
-    await expect(page.locator("text=Not found")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
     await expect(page.locator("text=back to dashboard")).toBeVisible();
   });
 
   test("another user's project shows forbidden view", async ({ page }) => {
     // Create a project first
-    await page.fill('[name="name"]', "Owned Project");
+    await page.fill('form [name="name"]', "Owned Project");
     await page.click('button[type="submit"]:has-text("Create")');
 
     // Get the project ID from URL after clicking
@@ -133,7 +133,7 @@ test.describe("Projects Dashboard", () => {
     await page.goto(projectUrl);
 
     // Should show not-found/forbidden view
-    await expect(page.locator("text=Not found")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
     await expect(page.locator("text=back to dashboard")).toBeVisible();
   });
 });

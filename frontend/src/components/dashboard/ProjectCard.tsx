@@ -5,8 +5,8 @@ import { Card } from "@/components/ui/Card";
 interface ProjectCardProps {
   id: string;
   name: string;
-  description?: string;
-  createdAt: string;
+  description?: string | null;
+  createdAt: Date | string;
 }
 
 export function ProjectCard({ id, name, description, createdAt }: ProjectCardProps) {

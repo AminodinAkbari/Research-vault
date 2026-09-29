@@ -5,13 +5,15 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useProjects } from "@/hooks/useProjects";
 import { NotFound } from "@/components/layout/NotFound";
+import { NotesPanel } from "@/components/notes/NotesPanel";
+import { TagsPanel } from "@/components/tags/TagsPanel";
 import { TabBar } from "@/components/ui/TabBar";
 import { TABS, getInitialTab, type TabId } from "@/lib/tabs";
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
   const projectId = params.id as string;
-  const { projects } = useProjects();
+  const { projects, isLoading } = useProjects();
 
   const project = projects.find((p) => p.id === projectId);
   const [activeTab, setActiveTab] = useState<TabId>(getInitialTab);
@@ -27,6 +29,14 @@ export default function ProjectWorkspacePage() {
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
+
+  if (isLoading) {
+    return (
+      <p role="status" aria-busy="true" className="text-muted-foreground">
+        Loading project…
+      </p>
+    );
+  }
 
   if (!project) {
     return <NotFound message="Project not found or you don't have access to it." />;
@@ -85,13 +95,13 @@ export default function ProjectWorkspacePage() {
       <TabBar
         tabs={TABS.map((t) => ({ id: t.id, label: t.label }))}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tabId) => setActiveTab(tabId as TabId)}
       />
 
       {/* Tab panels */}
       <div className="mt-6">
         <div id="notes-panel" role="tabpanel" aria-labelledby="notes-panel-tab" hidden={activeTab !== "notes-panel"}>
-          <div className="text-muted-foreground">Notes panel — Phase 5</div>
+          <NotesPanel projectId={project.id} />
         </div>
         <div id="links-panel" role="tabpanel" aria-labelledby="links-panel-tab" hidden={activeTab !== "links-panel"}>
           <div className="text-muted-foreground">Links panel — Phase 6</div>
@@ -100,7 +110,7 @@ export default function ProjectWorkspacePage() {
           <div className="text-muted-foreground">Web Search panel — Phase 6</div>
         </div>
         <div id="tags-panel" role="tabpanel" aria-labelledby="tags-panel-tab" hidden={activeTab !== "tags-panel"}>
-          <div className="text-muted-foreground">Tags panel — Phase 5</div>
+          <TagsPanel projectId={project.id} />
         </div>
       </div>
     </div>

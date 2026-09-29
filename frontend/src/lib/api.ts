@@ -9,7 +9,7 @@ const API_BASE = "";  // use relative URLs so Next.js proxies /api/* to the back
  */
 export async function apiFetch<T>(
   path: string,
-  schema: z.ZodType<T>,
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
   options?: RequestInit
 ): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {

@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { ApiError } from "@/lib/types";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
@@ -34,9 +35,9 @@ export default function RegisterPage() {
     try {
       await register({ email, password });
       router.push("/dashboard");
-    } catch (err: any) {
-      const status = err?.status;
-      const detail = err?.body?.detail;
+    } catch (err) {
+      const status = err instanceof ApiError ? err.status : undefined;
+      const detail = err instanceof ApiError ? err.body.detail : undefined;
       if (status === 409) {
         setError(
           typeof detail === "string"

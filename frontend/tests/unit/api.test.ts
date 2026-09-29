@@ -43,7 +43,7 @@ describe("apiFetch", () => {
   });
 
   it("throws ApiError on 401", async () => {
-    fetchMock.mockResolvedValueOnce({
+    fetchMock.mockResolvedValue({
       ok: false,
       status: 401,
       json: () => Promise.resolve({ detail: "Not authenticated" }),

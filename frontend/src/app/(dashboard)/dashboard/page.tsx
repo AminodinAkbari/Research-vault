@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 
 export default function DashboardPage() {
-  const { projects, isLoading, isError, createProject, isCreating } = useProjects();
+  const { projects, isLoading, isError } = useProjects();
 
   if (isLoading) {
     return (
