@@ -177,17 +177,19 @@ implemented, tested, and delivered independently.
 
 > Write these FIRST; confirm they FAIL before implementation
 
-- [ ] T055 [P] [US4] E2E search-links spec covering all 5 US4 acceptance scenarios (results show title/url-new-tab/snippet/engine, Save → "Saved" + appears in Links, "No results found." + "SearXNG is unavailable.", status auto-updates to Completed, delete-with-confirm removes) in `frontend/tests/e2e/search-links.spec.ts`
+- [X] T055 [P] [US4] E2E search-links spec covering all 5 US4 acceptance scenarios (results show title/url-new-tab/snippet/engine, Save → "Saved" + appears in Links, "No results found." + "SearXNG is unavailable.", status auto-updates to Completed, delete-with-confirm removes) in `frontend/tests/e2e/search-links.spec.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T056 [P] [US4] Create useLinks hook in `frontend/src/hooks/useLinks.ts`: list/create (SavedLinkCreate — url valid max 2048, title 1–500 required, snippet, search_query)/delete via /api/v1 links endpoints
-- [ ] T057 [P] [US4] Create useWebSearch hook in `frontend/src/hooks/useWebSearch.ts`: POST /api/v1/projects/{id}/search with query; map network/502 failure to copy "SearXNG is unavailable.", empty array → "No results found." (FR-018)
-- [ ] T058 [US4] Build LinksPanel in `frontend/src/components/links/LinksPanel.tsx`: title → reader route, truncated URL (80 chars + ellipsis) → external new tab, extraction status badge (Pending/Completed/Failed), tag badges, delete with confirm copy "Delete this saved link?" (FR-015)
-- [ ] T059 [US4] Implement extraction auto-refresh in `frontend/src/hooks/useExtractionPolling.ts`: while any link has extraction_status === 'pending', re-fetch links every ~3s (poll single-link GET /api/v1/projects/{id}/links/{link_id} or list); badge flips to Completed without user action (FR-016)
-- [ ] T060 [US4] Build WebSearchPanel in `frontend/src/components/search/WebSearchPanel.tsx`: query form, results list (title opens original in new tab, snippet, engine badge), per-result Save button → success "Saved" confirmation + link appears in Links tab; empty/error states distinct (FR-017, FR-018)
+- [X] T056 [P] [US4] Create useLinks hook in `frontend/src/hooks/useLinks.ts`: list/create (SavedLinkCreate — url valid max 2048, title 1–500 required, snippet, search_query)/delete via /api/v1 links endpoints
+- [X] T057 [P] [US4] Create useWebSearch hook in `frontend/src/hooks/useWebSearch.ts`: POST /api/v1/projects/{id}/search with query; map network/502 failure to copy "SearXNG is unavailable.", empty array → "No results found." (FR-018)
+- [X] T058 [US4] Build LinksPanel in `frontend/src/components/links/LinksPanel.tsx`: title → reader route, truncated URL (80 chars + ellipsis) → external new tab, extraction status badge (Pending/Completed/Failed), tag badges, delete with confirm copy "Delete this saved link?" (FR-015)
+- [X] T059 [US4] Implement extraction auto-refresh in `frontend/src/hooks/useExtractionPolling.ts`: while any link has extraction_status === 'pending', re-fetch links every ~3s (poll single-link GET /api/v1/projects/{id}/links/{link_id} or list); badge flips to Completed without user action (FR-016)
+- [X] T060 [US4] Build WebSearchPanel in `frontend/src/components/search/WebSearchPanel.tsx`: query form, results list (title opens original in new tab, snippet, engine badge), per-result Save button → success "Saved" confirmation + link appears in Links tab; empty/error states distinct (FR-017, FR-018)
 
 **Checkpoint**: US4 fully functional (collect half of research loop)
+
+**Phase 6 Complete**: T055–T060 all marked [X]
 
 ---
 

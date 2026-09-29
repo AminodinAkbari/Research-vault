@@ -6,6 +6,8 @@ import { useParams } from "next/navigation";
 import { useProjects } from "@/hooks/useProjects";
 import { NotFound } from "@/components/layout/NotFound";
 import { NotesPanel } from "@/components/notes/NotesPanel";
+import { LinksPanel } from "@/components/links/LinksPanel";
+import { WebSearchPanel } from "@/components/search/WebSearchPanel";
 import { TagsPanel } from "@/components/tags/TagsPanel";
 import { TabBar } from "@/components/ui/TabBar";
 import { TABS, getInitialTab, type TabId } from "@/lib/tabs";
@@ -104,10 +106,10 @@ export default function ProjectWorkspacePage() {
           <NotesPanel projectId={project.id} />
         </div>
         <div id="links-panel" role="tabpanel" aria-labelledby="links-panel-tab" hidden={activeTab !== "links-panel"}>
-          <div className="text-muted-foreground">Links panel — Phase 6</div>
+          <LinksPanel projectId={project.id} />
         </div>
         <div id="websearch-panel" role="tabpanel" aria-labelledby="websearch-panel-tab" hidden={activeTab !== "websearch-panel"}>
-          <div className="text-muted-foreground">Web Search panel — Phase 6</div>
+          <WebSearchPanel projectId={project.id} />
         </div>
         <div id="tags-panel" role="tabpanel" aria-labelledby="tags-panel-tab" hidden={activeTab !== "tags-panel"}>
           <TagsPanel projectId={project.id} />

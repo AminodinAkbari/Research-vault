@@ -1,43 +1,23 @@
-import { test, expect, request as playwrightRequest } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import type { Page, Locator } from "@playwright/test";
-import path from "path";
-
-const PASSWORD = "testpassword123";
-const authStatePath = path.join(
-  __dirname,
-  `../fixtures/notes-auth-${process.pid}.json`
-);
+import { ensureSharedAuthState, authStatePath } from "../helpers/auth";
 
 test.beforeAll(async ({ baseURL }) => {
-  const api = await playwrightRequest.newContext({
-    baseURL,
-    storageState: { cookies: [], origins: [] },
-  });
-  try {
-    const res = await api.post("/api/v1/auth/register", {
-      data: {
-        email: `notes-${Date.now()}-${process.pid}@example.com`,
-        password: PASSWORD,
-      },
-    });
-    expect(
-      res.ok(),
-      `register failed: ${res.status()} ${await res.text()}`
-    ).toBeTruthy();
-    await api.storageState({ path: authStatePath });
-  } finally {
-    await api.dispose();
-  }
+  await ensureSharedAuthState(baseURL!);
 });
 
-test.use({ storageState: authStatePath });
+test.use({ storageState: authStatePath() });
 
 async function createProject(page: Page, name: string): Promise<string> {
+  // Shared E2E account — keep names unique so project cards never collide
+  const uniqueName = `${name}-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 6)}`;
   await page.goto("/dashboard");
-  await page.fill('form [name="name"]', name);
+  await page.fill('form [name="name"]', uniqueName);
   await page.click('button[type="submit"]:has-text("Create")');
-  await expect(page.locator(`text=${name}`)).toBeVisible();
-  await page.click(`text=${name} >> nth=0`);
+  await expect(page.locator(`text=${uniqueName}`)).toBeVisible();
+  await page.click(`text=${uniqueName} >> nth=0`);
   await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+/);
   const match = page.url().match(/\/projects\/([0-9a-f-]+)/);
   if (!match) throw new Error(`Could not extract project id from ${page.url()}`);
