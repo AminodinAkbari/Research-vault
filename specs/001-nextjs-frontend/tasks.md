@@ -89,21 +89,23 @@ implemented, tested, and delivered independently.
 
 > Write these FIRST; confirm they FAIL before implementation
 
-- [ ] T027 [P] [US1] Unit tests for apiFetch error paths + 401 redirect behavior in `frontend/tests/unit/api.test.ts`
-- [ ] T028 [P] [US1] E2E auth spec covering all 5 US1 acceptance scenarios (redirect-when-logged-out, login persists, wrong-credentials inline copy "Invalid email or password." with input preserved, register client validation mismatch/<8 chars + 409 inline, logout locks protected pages) in `frontend/tests/e2e/auth.spec.ts`
+- [X] T027 [P] [US1] Unit tests for apiFetch error paths + 401 redirect behavior in `frontend/tests/unit/api.test.ts`
+- [X] T028 [P] [US1] E2E auth spec covering all 5 US1 acceptance scenarios (redirect-when-logged-out, login persists, wrong-credentials inline copy "Invalid email or password." with input preserved, register client validation mismatch/<8 chars + 409 inline, logout locks protected pages) in `frontend/tests/e2e/auth.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T029 [P] [US1] Create auth API functions in `frontend/src/lib/auth.ts`: register (POST /api/v1/auth/register), login (POST /api/v1/auth/login), logout (POST /logout — cookie clear, follow redirect to /login); credentials always included
-- [ ] T030 [P] [US1] Create useAuth hook in `frontend/src/hooks/useAuth.ts`: session state from cookie validity (probe authenticated endpoint), isAuthenticated, login/register/logout actions
-- [ ] T031 [US1] Build login page in `frontend/src/app/(auth)/login/page.tsx`: email + password, inline server-error display without clearing form, exact copy "Invalid email or password." / "Something went wrong. Please try again." (FR-002), redirect to /dashboard on success (FR-003), link to /register
-- [ ] T032 [US1] Build register page in `frontend/src/app/(auth)/register/page.tsx`: client-side checks — password mismatch and password minimum length 8 characters before any request (FR-001); server 409 conflict shown inline; redirect to /dashboard on success
-- [ ] T033 [P] [US1] Create LogoutButton in `frontend/src/components/layout/LogoutButton.tsx`: calls POST /logout, redirects to /login (FR-004)
-- [ ] T034 [US1] Create protected route layout in `frontend/src/app/(dashboard)/layout.tsx`: server-side session check; unauthenticated → redirect /login (FR-003, FR-029)
-- [ ] T035 [US1] Implement root redirect in `frontend/src/app/page.tsx`: authenticated → /dashboard, else → /login (parity with GET /)
-- [ ] T036 [US1] Build authenticated header in `frontend/src/components/layout/Header.tsx`: brand link + LogoutButton on every authenticated page (FR-004); no email display (spec Assumption: deferred)
+- [X] T029 [P] [US1] Create auth API functions in `frontend/src/lib/auth.ts`: register (POST /api/v1/auth/register), login (POST /api/v1/auth/login), logout (POST /logout — cookie clear, follow redirect to /login); credentials always included
+- [X] T030 [P] [US1] Create useAuth hook in `frontend/src/hooks/useAuth.ts`: session state from cookie validity (probe authenticated endpoint), isAuthenticated, login/register/logout actions
+- [X] T031 [US1] Build login page in `frontend/src/app/(auth)/login/page.tsx`: email + password, inline server-error display without clearing form, exact copy "Invalid email or password." / "Something went wrong. Please try again." (FR-002), redirect to /dashboard on success (FR-003), link to /register
+- [X] T032 [US1] Build register page in `frontend/src/app/(auth)/register/page.tsx`: client-side checks — password mismatch and password minimum length 8 characters before any request (FR-001); server 409 conflict shown inline; redirect to /dashboard on success
+- [X] T033 [P] [US1] Create LogoutButton in `frontend/src/components/layout/LogoutButton.tsx`: calls POST /logout, redirects to /login (FR-004)
+- [X] T034 [US1] Create protected route layout in `frontend/src/app/(dashboard)/layout.tsx`: server-side session check; unauthenticated → redirect /login (FR-003, FR-029)
+- [X] T035 [US1] Implement root redirect in `frontend/src/app/page.tsx`: authenticated → /dashboard, else → /login (parity with GET /)
+- [X] T036 [US1] Build authenticated header in `frontend/src/components/layout/Header.tsx`: brand link + LogoutButton on every authenticated page (FR-004); no email display (spec Assumption: deferred)
 
 **Checkpoint**: User Story 1 fully functional and testable independently — STOP and VALIDATE
+
+**Phase 3 Complete**: T027–T036 all marked [X]
 
 ---
 
@@ -117,19 +119,21 @@ implemented, tested, and delivered independently.
 
 > Write these FIRST; confirm they FAIL before implementation
 
-- [ ] T037 [P] [US2] E2E projects spec covering all 4 US2 acceptance scenarios (empty-state copy, create without reload + form resets, list shows name/description-or-default/date, non-owned/bad-ID → not-found view) in `frontend/tests/e2e/projects.spec.ts`
+- [X] T037 [P] [US2] E2E projects spec covering all 4 US2 acceptance scenarios (empty-state copy, create without reload + form resets, list shows name/description-or-default/date, non-owned/bad-ID → not-found view) in `frontend/tests/e2e/projects.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T038 [P] [US2] Create useProjects hook in `frontend/src/hooks/useProjects.ts`: list projects (GET /api/v1/projects), create project (POST /api/v1/projects with name 1–200 chars required, description optional max 2000), cache invalidation
-- [ ] T039 [US2] Build dashboard page in `frontend/src/app/(dashboard)/dashboard/page.tsx`: project list, empty state copy (FR-005), create form, header (FR-005, FR-006)
-- [ ] T040 [P] [US2] Create ProjectCreateForm in `frontend/src/components/forms/ProjectCreateForm.tsx`: required name (1–200 chars), optional description (max 2000), submit without full page reload, new card appears immediately, form resets on success, button disabled in-flight (FR-006, edge: double-click → single creation)
-- [ ] T041 [P] [US2] Create ProjectCard in `frontend/src/components/dashboard/ProjectCard.tsx`: name, description or "No description yet.", formatted created date, navigates to /projects/[id]
-- [ ] T042 [US2] Build project workspace shell in `frontend/src/app/(dashboard)/projects/[id]/page.tsx`: back-navigation "← Back to projects", project title/description via GET /api/v1/projects/{id}, exactly four tabs — Notes, Links, Web Search, Tags — default Notes, client-side switching without reload (FR-008); slots for search box, export button, tag-filter results (FR-008, FR-010)
-- [ ] T043 [P] [US2] Create NotFound view in `frontend/src/components/layout/NotFound.tsx`: clear not-found/forbidden message + way back, never leaked data (FR-007)
-- [ ] T044 [US2] Implement tab activation utilities in `frontend/src/lib/tabs.ts`: URL hash activates tab on load (e.g. #notes-panel), arriving with ?source_link_id=... opens Notes tab with link preselected (FR-009)
+- [X] T038 [P] [US2] Create useProjects hook in `frontend/src/hooks/useProjects.ts`: list projects (GET /api/v1/projects), create project (POST /api/v1/projects with name 1–200 chars required, description optional max 2000), cache invalidation
+- [X] T039 [US2] Build dashboard page in `frontend/src/app/(dashboard)/dashboard/page.tsx`: project list, empty state copy (FR-005), create form, header (FR-005, FR-006)
+- [X] T040 [P] [US2] Create ProjectCreateForm in `frontend/src/components/forms/ProjectCreateForm.tsx`: required name (1–200 chars), optional description (max 2000), submit without full page reload, new card appears immediately, form resets on success, button disabled in-flight (FR-006, edge: double-click → single creation)
+- [X] T041 [P] [US2] Create ProjectCard in `frontend/src/components/dashboard/ProjectCard.tsx`: name, description or "No description yet.", formatted created date, navigates to /projects/[id]
+- [X] T042 [US2] Build project workspace shell in `frontend/src/app/(dashboard)/projects/[id]/page.tsx`: back-navigation "← Back to projects", project title/description via GET /api/v1/projects/{id}, exactly four tabs — Notes, Links, Web Search, Tags — default Notes, client-side switching without reload (FR-008); slots for search box, export button, tag-filter results (FR-008, FR-010)
+- [X] T043 [P] [US2] Create NotFound view in `frontend/src/components/layout/NotFound.tsx`: clear not-found/forbidden message + way back, never leaked data (FR-007)
+- [X] T044 [US2] Implement tab activation utilities in `frontend/src/lib/tabs.ts`: URL hash activates tab on load (e.g. #notes-panel), arriving with ?source_link_id=... opens Notes tab with link preselected (FR-009)
 
 **Checkpoint**: US1 + US2 work independently; workspace shell ready for tab panels
+
+**Phase 4 Complete**: T037–T044 all marked [X]
 
 ---
 
