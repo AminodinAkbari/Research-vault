@@ -30,7 +30,7 @@ def extract_link_content(link_id: str) -> None:
     """
     db = SessionLocal()
     try:
-        link: SavedLink | None = db.get(SavedLink, uuid.UUID(link_id))
+        link: SavedLink | None = db.get(SavedLink, link_id)
         if link is None:
             logger.error("extract_link_content: link %s not found — skipping", link_id)
             return
