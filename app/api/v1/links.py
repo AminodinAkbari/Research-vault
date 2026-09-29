@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import uuid
 
+import logging
+logger = logging.getLogger(__name__)
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +12,7 @@ from app.core.dependencies import get_current_project
 from app.core.rate_limiter import ai_rate_limit
 from app.db.session import get_db
 from app.models.project import Project
-from app.schemas.link import SavedLinkCreate, SavedLinkRead, LinkSummaryResponse, LinkStatusUpdate, LinkStatusResponse
+from app.schemas.link import SavedLinkCreate, SavedLinkRead, LinkSummaryResponse, LinkStatusUpdate, LinkStatusResponse, ReExtractResponse
 from app.schemas.bulk_tags import BulkTagsRequest, BulkTagsResponse
 from app.services import bulk_tags as bulk_tags_service
 from app.schemas.search import SearchQuery, SearchResult
@@ -48,6 +51,44 @@ async def create_link(
         title=payload.title,
         snippet=payload.snippet,
         search_query=payload.search_query,
+    )
+    
+@router.post(
+    "/link/{link_id}/re-extract",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=ReExtractResponse,
+)
+async def re_extract_link(
+    link_id: uuid.UUID,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> ReExtractResponse:
+    try:
+        link = await link_service.trigger_extraction(
+            db,
+            project_id=project.id,
+            link_id=link_id,
+        )
+    except link_service.LinkNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Link not found",
+        ) from exc
+    except Exception:
+        logger.error(
+            "Failed to re-extract link %s in project %s",
+            link_id,
+            project.id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Something went wrong.",
+        ) from None
+
+    return ReExtractResponse(
+        id=link.id,
+        extraction_status=link.extraction_status,
+        detail="Re-extraction started",
     )
 
 

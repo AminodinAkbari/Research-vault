@@ -388,27 +388,6 @@ async def link_content_ui(
     )
 
 
-@router.post("/projects/{project_id}/links/{link_id}/extract", response_class=HTMLResponse)
-async def extract_link_ui(
-    request: Request,
-    link_id: uuid.UUID,
-    project: Project = Depends(get_current_project_from_cookie),
-    db: AsyncSession = Depends(get_db),
-):
-    try:
-        link = await link_service.trigger_extraction(
-            db, project_id=project.id, link_id=link_id
-        )
-    except link_service.LinkNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Link not found") from exc
-
-    return templates.TemplateResponse(
-        "links/_link_item.html",
-        name="links/_link_item.html",
-        context={"request": request, "project": project, "link": link}
-    )
-
-
 @router.delete("/projects/{project_id}/links/{link_id}")
 async def delete_link_ui(
     link_id: uuid.UUID,

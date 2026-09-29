@@ -61,3 +61,9 @@ class LinkSummaryResponse(BaseModel):
 class LinkStatusResponse(BaseModel):
     id: uuid.UUID
     status: ReadingStatus
+
+
+class ReExtractResponse(BaseModel):
+    id: uuid.UUID
+    extraction_status: ExtractionStatus
+    detail: str

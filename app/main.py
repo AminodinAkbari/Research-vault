@@ -59,6 +59,7 @@ v1_router.include_router(
     tags=["search"],
 )
 v1_router.include_router(roadmap_router, tags=["roadmap"])
+# v1_router.include_router(ui_project_router ,prefix="/projects/{project_id}", tags=["ui project router"])
 app.include_router(v1_router)
 
 # ---------------------------------------------------------------------------
@@ -66,7 +67,6 @@ app.include_router(v1_router)
 # ---------------------------------------------------------------------------
 
 app.include_router(ui_router)
-app.include_router(ui_project_router)
 
 
 @app.get("/health", tags=["health"])
