@@ -96,18 +96,28 @@ async def set_link_status(
 
 
 async def trigger_extraction(
-    db: AsyncSession, *, project_id: uuid.UUID, link_id: uuid.UUID
+    db: AsyncSession,
+    *,
+    project_id: uuid.UUID,
+    link_id: uuid.UUID,
 ) -> SavedLink:
-    """Reset a link's extraction status to pending and re-queue the Celery
-    extraction task. Used for manual re-extraction (e.g. after a failure, or
-    to refresh already-completed content).
-    """
-    link = await get_link(db, project_id=project_id, link_id=link_id)
-    link.extraction_status = ExtractionStatus.pending
-    await db.flush()
-    extract_link_content.delay(str(link.id))
-    return await get_link(db, project_id=project_id, link_id=link_id)
+    """Reset extraction status and queue a new extraction task."""
 
+    link = await get_link(
+        db,
+        project_id=project_id,
+        link_id=link_id,
+    )
+
+    link.extraction_status = ExtractionStatus.pending
+
+    # Make the pending state visible to the Celery worker first.
+    await db.commit()
+    await db.refresh(link)
+
+    extract_link_content.delay(str(link.id))
+
+    return link
 
 async def attach_tags(
     db: AsyncSession,
