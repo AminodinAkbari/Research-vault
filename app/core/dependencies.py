@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Cookie, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -57,11 +57,17 @@ async def _resolve_user_from_token(token: str | None, db: AsyncSession) -> User 
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    token: str | None = Depends(oauth2_scheme_optional),
     db: AsyncSession = Depends(get_db),
+    access_token_cookie: str | None = Cookie(default=None, alias=COOKIE_NAME),
 ) -> User:
-    """API auth dependency: requires a valid `Authorization: Bearer <token>` header."""
-    user = await _resolve_user_from_token(token, db)
+    """API auth dependency: accepts either an `Authorization: Bearer <token>`
+    header or the `access_token` httpOnly cookie. This lets both programmatic
+    clients (curl, mobile apps) and the browser-based SPA/UI authenticate with
+    the same endpoints.
+    """
+    effective_token = token or access_token_cookie
+    user = await _resolve_user_from_token(effective_token, db)
     if user is None:
         raise _credentials_exception
     return user
