@@ -32,7 +32,7 @@ export type RegisterRequest = z.infer<typeof RegisterRequest>;
 export const RegisterResponse = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
-  created_at: z.string().datetime(),
+  created_at: z.coerce.date(),
   access_token: z.string(),
   token_type: z.literal('bearer'),
 });
@@ -59,7 +59,7 @@ export const ProjectRead = z.object({
   user_id: z.string().uuid(),
   name: z.string().min(1).max(200),
   description: z.string().max(2000).nullable().default(null),
-  created_at: z.string().datetime(),
+  created_at: z.coerce.date(),
 });
 export type ProjectRead = z.infer<typeof ProjectRead>;
 
@@ -77,7 +77,7 @@ export const TagRead = z.object({
   id: z.string().uuid(),
   project_id: z.string().uuid(),
   name: z.string().min(1).max(50),
-  created_at: z.string().datetime(),
+  created_at: z.coerce.date(),
 });
 export type TagRead = z.infer<typeof TagRead>;
 
@@ -99,8 +99,8 @@ export const NoteRead = z.object({
   title: z.string().min(1).max(200),
   content: z.string().max(100000).default(''),
   source_link_id: z.string().uuid().nullable().default(null),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
   tags: z.array(TagResponse).default([]),
 });
 export type NoteRead = z.infer<typeof NoteRead>;
@@ -135,7 +135,7 @@ export const SavedLinkRead = z.object({
   extracted_content: z.string().nullable().default(null),
   extraction_status: ExtractionStatus,
   status: ReadingStatus.default('to_read'),
-  created_at: z.string().datetime(),
+  created_at: z.coerce.date(),
   tags: z.array(TagResponse).default([]),
   summary: z.string().nullable().default(null),
 });
@@ -162,7 +162,7 @@ export const HighlightRead = z.object({
   start_offset: z.number().int().min(0),
   end_offset: z.number().int().min(1),
   color: z.string().nullable().default(null), // named color or hex
-  created_at: z.string().datetime(),
+  created_at: z.coerce.date(),
 });
 export type HighlightRead = z.infer<typeof HighlightRead>;
 
