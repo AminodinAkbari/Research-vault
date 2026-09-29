@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ApiError, ApiErrorBody } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const API_BASE = "";  // use relative URLs so Next.js proxies /api/* to the backend
 
 /**
  * Typed fetch wrapper with credentials: 'include' (cookie-only auth).
