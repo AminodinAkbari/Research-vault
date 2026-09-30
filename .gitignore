@@ -1,8 +1,10 @@
-*__pycache__
+__pycache__/
 .env
-.pytest_cache
-.venv
-/graphify-out
+.pytest_cache/
+.venv/
+graphify-out/
 AGENTS.md
-.opencode
-.claude
+.opencode/
+.claude/
+.specify/feature.json
+.specify/extensions/*/local-config.yml
