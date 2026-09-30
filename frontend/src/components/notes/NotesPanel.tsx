@@ -13,9 +13,10 @@ import { Button } from "@/components/ui/Button";
 
 export interface NotesPanelProps {
   projectId: string;
+  onTagClick?: (tag: { id: string; name: string }) => void;
 }
 
-export function NotesPanel({ projectId }: NotesPanelProps) {
+export function NotesPanel({ projectId, onTagClick }: NotesPanelProps) {
   const {
     notes,
     isLoading,
@@ -84,6 +85,7 @@ export function NotesPanel({ projectId }: NotesPanelProps) {
                   onDelete={() => deleteNote(note.id)}
                   onAttachTag={(tagId: string) => attachTags(note.id, [tagId])}
                   onDetachTag={(tagId: string) => detachTag(note.id, tagId)}
+                  onTagClick={onTagClick}
                 />
               </li>
             ))}

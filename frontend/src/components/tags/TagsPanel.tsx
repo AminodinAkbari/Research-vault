@@ -10,9 +10,10 @@ import { ApiError, TagRead } from "@/lib/types";
 
 export interface TagsPanelProps {
   projectId: string;
+  onTagClick?: (tag: { id: string; name: string }) => void;
 }
 
-export function TagsPanel({ projectId }: TagsPanelProps) {
+export function TagsPanel({ projectId, onTagClick }: TagsPanelProps) {
   const { tags, isLoading, createTag, isCreating, deleteTag, isDeleting } =
     useTags(projectId);
   const [name, setName] = useState("");
@@ -110,9 +111,19 @@ export function TagsPanel({ projectId }: TagsPanelProps) {
                 id={`tag-${tag.id}`}
                 className="flex items-center justify-between gap-3 border border-border rounded-lg px-4 py-2"
               >
-                <span className="text-sm font-medium text-foreground">
-                  {tag.name}
-                </span>
+                {onTagClick ? (
+                  <button
+                    type="button"
+                    onClick={() => onTagClick({ id: tag.id, name: tag.name })}
+                    className="rounded text-sm font-medium text-foreground transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {tag.name}
+                  </button>
+                ) : (
+                  <span className="text-sm font-medium text-foreground">
+                    {tag.name}
+                  </span>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

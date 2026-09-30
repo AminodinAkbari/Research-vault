@@ -229,14 +229,14 @@ implemented, tested, and delivered independently.
 
 > Write these FIRST; confirm they FAIL before implementation
 
-- [ ] T069 [P] [US6] E2E search-filter-export spec covering all 4 US6 acceptance scenarios (500ms-debounced results ordered by relevance + clear-input clears, tag badge → unified filtered list above tabs + "Clear filter" no reload, empty-result state, export downloads one Markdown file) in `frontend/tests/e2e/search-filter-export.spec.ts`
+- [X] T069 [P] [US6] E2E search-filter-export spec covering all 4 US6 acceptance scenarios (500ms-debounced results ordered by relevance + clear-input clears, tag badge → unified filtered list above tabs + "Clear filter" no reload, empty-result state, export downloads one Markdown file) in `frontend/tests/e2e/search-filter-export.spec.ts`
 
 ### Implementation for User Story 6
 
-- [ ] T070 [P] [US6] Create useCollectedSearch hook in `frontend/src/hooks/useCollectedSearch.ts`: GET /api/v1/projects/{id}/search-collected?q=..., debounce ~500 ms after typing stops or on submit, empty query fires no request and clears results (FR-021, edge case)
-- [ ] T071 [US6] Build ProjectSearchBox in `frontend/src/components/search/ProjectSearchBox.tsx`: unified relevance-ordered results (type badge note/link, title, snippet, navigable link to item), rendered in workspace slot above tabs (FR-021)
-- [ ] T072 [US6] Implement tag filtering: TagFilterResults component in `frontend/src/components/tags/TagFilterResults.tsx` + wire tag-badge clicks across note/link/tag panels (client-side derivation from notes+links payloads per spec Assumption — no new endpoint): unified list with type badges + navigation, "Clear filter" action, empty-result state, displayed above tabs without page reload (FR-020)
-- [ ] T073 [P] [US6] Create ExportButton in `frontend/src/components/export/ExportButton.tsx`: direct download link to GET /api/v1/projects/{id}/export/markdown (cookie auth accepted), one click → one .md file (US6 scenario 4), placed in workspace slot
+- [X] T070 [P] [US6] Create useCollectedSearch hook in `frontend/src/hooks/useCollectedSearch.ts`: GET /api/v1/projects/{id}/search-collected?q=..., debounce ~500 ms after typing stops or on submit, empty query fires no request and clears results (FR-021, edge case)
+- [X] T071 [US6] Build ProjectSearchBox in `frontend/src/components/search/ProjectSearchBox.tsx`: unified relevance-ordered results (type badge note/link, title, snippet, navigable link to item), rendered in workspace slot above tabs (FR-021)
+- [X] T072 [US6] Implement tag filtering: TagFilterResults component in `frontend/src/components/tags/TagFilterResults.tsx` + wire tag-badge clicks across note/link/tag panels (client-side derivation from notes+links payloads per spec Assumption — no new endpoint): unified list with type badges + navigation, "Clear filter" action, empty-result state, displayed above tabs without page reload (FR-020)
+- [X] T073 [P] [US6] Create ExportButton in `frontend/src/components/export/ExportButton.tsx`: direct download link to GET /api/v1/projects/{id}/export/markdown (cookie auth accepted), one click → one .md file (US6 scenario 4), placed in workspace slot
 
 **Checkpoint**: All six user stories independently functional
 

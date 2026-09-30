@@ -60,3 +60,30 @@ export const TagChip = forwardRef<HTMLSpanElement, TagChipProps>(
 );
 
 TagChip.displayName = "TagChip";
+
+/** Shared pill styling for tag chips (tag-radius exception per Design Direction). */
+export const TAG_CHIP_CLASS =
+  "inline-flex items-center gap-1 rounded-pill border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground";
+
+export interface TagFilterChipProps {
+  tag: { id: string; name: string };
+  onSelect?: (tag: { id: string; name: string }) => void;
+}
+
+/**
+ * Tag chip that filters the workspace when a handler is wired (FR-020);
+ * renders as a static chip otherwise.
+ */
+export function TagFilterChip({ tag, onSelect }: TagFilterChipProps) {
+  if (!onSelect) return <Badge>{tag.name}</Badge>;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(tag)}
+      className={`${TAG_CHIP_CLASS} rounded-pill transition-colors hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+    >
+      {tag.name}
+    </button>
+  );
+}

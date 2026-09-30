@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLinks } from "@/hooks/useLinks";
 import { useExtractionPolling } from "@/hooks/useExtractionPolling";
 import { Badge } from "@/components/ui/Badge";
+import { TagFilterChip } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -12,6 +13,7 @@ import { ApiError, SavedLinkRead } from "@/lib/types";
 
 export interface LinksPanelProps {
   projectId: string;
+  onTagClick?: (tag: { id: string; name: string }) => void;
 }
 
 const STATUS_LABEL: Record<SavedLinkRead["extraction_status"], string> = {
@@ -33,7 +35,7 @@ function truncateUrl(url: string): string {
   return url.length > 80 ? `${url.slice(0, 80)}…` : url;
 }
 
-export function LinksPanel({ projectId }: LinksPanelProps) {
+export function LinksPanel({ projectId, onTagClick }: LinksPanelProps) {
   const { links, isLoading, isError, deleteLink, isDeleting } =
     useLinks(projectId);
   const [pendingDelete, setPendingDelete] = useState<SavedLinkRead | null>(
@@ -132,7 +134,11 @@ export function LinksPanel({ projectId }: LinksPanelProps) {
                       </span>
                     ) : (
                       link.tags.map((tag) => (
-                        <Badge key={tag.id}>{tag.name}</Badge>
+                        <TagFilterChip
+                          key={tag.id}
+                          tag={tag}
+                          onSelect={onTagClick}
+                        />
                       ))
                     )}
                   </div>

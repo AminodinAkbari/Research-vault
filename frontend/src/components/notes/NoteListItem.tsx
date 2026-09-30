@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { NoteEditForm } from "./NoteEditForm";
 import { TagAttachPicker } from "./TagAttachPicker";
+import { TAG_CHIP_CLASS } from "@/components/ui/Badge";
 import { ApiError, NoteRead, NoteUpdate, SavedLinkRead, TagRead } from "@/lib/types";
 
 export interface NoteListItemProps {
@@ -17,6 +18,7 @@ export interface NoteListItemProps {
   onDelete: () => Promise<unknown>;
   onAttachTag: (tagId: string) => Promise<unknown>;
   onDetachTag: (tagId: string) => Promise<unknown>;
+  onTagClick?: (tag: { id: string; name: string }) => void;
 }
 
 function contentPreview(content: string) {
@@ -33,6 +35,7 @@ export function NoteListItem({
   onDelete,
   onAttachTag,
   onDetachTag,
+  onTagClick,
 }: NoteListItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -129,11 +132,18 @@ export function NoteListItem({
               <span className="text-sm text-muted-foreground">No tags</span>
             ) : (
               note.tags.map((tag) => (
-                <span
-                  key={tag.id}
-                  className="inline-flex items-center gap-1 rounded-pill bg-muted px-2 py-0.5 text-xs font-medium text-foreground border border-border"
-                >
-                  {tag.name}
+                <span key={tag.id} className={TAG_CHIP_CLASS}>
+                  {onTagClick ? (
+                    <button
+                      type="button"
+                      onClick={() => onTagClick(tag)}
+                      className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {tag.name}
+                    </button>
+                  ) : (
+                    tag.name
+                  )}
                   <button
                     type="button"
                     onClick={() => handleDetach(tag.id)}

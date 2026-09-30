@@ -1,16 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { endpoints } from "@/lib/endpoints";
+import { NoteRead, SavedLinkRead } from "@/lib/types";
 import { useProjects } from "@/hooks/useProjects";
 import { NotFound } from "@/components/layout/NotFound";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { LinksPanel } from "@/components/links/LinksPanel";
 import { WebSearchPanel } from "@/components/search/WebSearchPanel";
+import { ProjectSearchBox } from "@/components/search/ProjectSearchBox";
+import { TagFilterResults } from "@/components/tags/TagFilterResults";
 import { TagsPanel } from "@/components/tags/TagsPanel";
+import { ExportButton } from "@/components/export/ExportButton";
 import { TabBar } from "@/components/ui/TabBar";
 import { TABS, getInitialTab, type TabId } from "@/lib/tabs";
+
+interface TagFilter {
+  id: string;
+  name: string;
+}
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
@@ -19,6 +31,42 @@ export default function ProjectWorkspacePage() {
 
   const project = projects.find((p) => p.id === projectId);
   const [activeTab, setActiveTab] = useState<TabId>(getInitialTab);
+  const [tagFilter, setTagFilter] = useState<TagFilter | null>(null);
+  const [pendingNoteScroll, setPendingNoteScroll] = useState<string | null>(
+    null
+  );
+
+  // Shared with the panels above (same query keys ⇒ one request per list)
+  const notesQuery = useQuery({
+    queryKey: ["notes", projectId],
+    queryFn: () => apiFetch(endpoints.notes(projectId), NoteRead.array()),
+    staleTime: 15000,
+    enabled: !!projectId,
+  });
+  const linksQuery = useQuery({
+    queryKey: ["links", projectId],
+    queryFn: () => apiFetch(endpoints.links(projectId), SavedLinkRead.array()),
+    staleTime: 15000,
+    enabled: !!projectId,
+  });
+
+  const handleTagClick = useCallback((tag: TagFilter) => {
+    setTagFilter(tag);
+  }, []);
+
+  const handleNoteSelect = useCallback((noteId: string) => {
+    setActiveTab("notes-panel");
+    setPendingNoteScroll(noteId);
+  }, []);
+
+  // FR-020: jump to the note once its tab is visible
+  useEffect(() => {
+    if (!pendingNoteScroll) return;
+    document
+      .getElementById(`note-${pendingNoteScroll}`)
+      ?.scrollIntoView({ block: "start" });
+    setPendingNoteScroll(null);
+  }, [pendingNoteScroll, activeTab]);
 
   // Sync with URL hash changes
   useEffect(() => {
@@ -61,37 +109,26 @@ export default function ProjectWorkspacePage() {
       </div>
 
       {/* Search box area */}
-      <div>
-        <div className="flex gap-2">
-          <input
-            type="search"
-            placeholder="Search notes & links…"
-            aria-label="Full-text search"
-            className="flex-1 h-10 px-3 rounded border border-border bg-background text-sm"
-          />
-          <button
-            type="button"
-            className="h-10 px-4 rounded border border-border bg-background text-sm hover:bg-muted"
-          >
-            Search
-          </button>
-        </div>
-        <div id="collected-search-results" className="mt-3" />
-      </div>
+      <ProjectSearchBox
+        projectId={project.id}
+        onNoteSelect={handleNoteSelect}
+      />
 
       {/* Export button */}
-      <div className="flex justify-end">
-        <a
-          href={`http://localhost:8000/api/v1/projects/${project.id}/export/markdown`}
-          download
-          className="text-sm text-accent hover:underline"
-        >
-          Export as Markdown
-        </a>
-      </div>
+      <ExportButton projectId={project.id} />
 
       {/* Tag filter results area */}
-      <div id="tag-filter-results" aria-live="polite" className="min-h-0" />
+      {tagFilter && (
+        <TagFilterResults
+          projectId={project.id}
+          tag={tagFilter}
+          notes={notesQuery.data ?? []}
+          links={linksQuery.data ?? []}
+          isLoading={notesQuery.isLoading || linksQuery.isLoading}
+          onClear={() => setTagFilter(null)}
+          onNoteSelect={handleNoteSelect}
+        />
+      )}
 
       {/* Tabs */}
       <TabBar
@@ -103,16 +140,16 @@ export default function ProjectWorkspacePage() {
       {/* Tab panels */}
       <div className="mt-6">
         <div id="notes-panel" role="tabpanel" aria-labelledby="notes-panel-tab" hidden={activeTab !== "notes-panel"}>
-          <NotesPanel projectId={project.id} />
+          <NotesPanel projectId={project.id} onTagClick={handleTagClick} />
         </div>
         <div id="links-panel" role="tabpanel" aria-labelledby="links-panel-tab" hidden={activeTab !== "links-panel"}>
-          <LinksPanel projectId={project.id} />
+          <LinksPanel projectId={project.id} onTagClick={handleTagClick} />
         </div>
         <div id="websearch-panel" role="tabpanel" aria-labelledby="websearch-panel-tab" hidden={activeTab !== "websearch-panel"}>
           <WebSearchPanel projectId={project.id} />
         </div>
         <div id="tags-panel" role="tabpanel" aria-labelledby="tags-panel-tab" hidden={activeTab !== "tags-panel"}>
-          <TagsPanel projectId={project.id} />
+          <TagsPanel projectId={project.id} onTagClick={handleTagClick} />
         </div>
       </div>
     </div>
