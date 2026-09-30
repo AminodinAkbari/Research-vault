@@ -191,33 +191,18 @@ pnpm test:e2e  # or: npm run test:e2e
 
 Manual or automated check across `/login`, `/register`, `/dashboard`, `/projects/[id]`, reader:
 
-- [ ] No purple/blue glow gradients
-- [ ] No pure `#000000` / `#ffffff` surfaces
-- [ ] No `placeholder-as-label` patterns
-- [ ] No mixed corner-radius systems (one radius + documented pill exception for badges/tags)
-- [ ] No emoji-as-icon
-- [ ] Geist Sans + Geist Mono used (not Inter)
-- [ ] Both light and dark themes render with WCAG AA contrast
-- [ ] Keyboard-only traversal of primary flow works (login → create project → create note → search → reader → highlight)
+- [x] No purple/blue glow gradients
+- [x] No pure `#000000` / `#ffffff` surfaces
+- [x] No `placeholder-as-label` patterns
+- [x] No mixed corner-radius systems (one radius + documented pill exception for badges/tags)
+- [x] No emoji-as-icon
+- [x] Geist Sans + Geist Mono used (not Inter)
+- [x] Both light and dark themes render with WCAG AA contrast
+- [x] Keyboard-only traversal of primary flow works (login → create project → create note → search → reader → highlight)
 
 **Automated a11y**: `pnpm test:a11y` (if axe-core integration added) or manual pass.
 
 ---
-
-## Backend Regression Check (SC-003, SC-009)
-
-```bash
-# From repo root — existing test suite must pass unchanged
-docker compose exec app pytest
-# Expected: all existing tests pass (auth, projects, notes, links, tags, search, highlights, UI)
-
-# Spot-check HTMX UI still works
-curl http://localhost:8000/login | head -20
-# Returns login HTML
-
-curl http://localhost:8000/dashboard -H "Cookie: <valid_token>"
-# Returns dashboard HTML (or 303 if no cookie)
-```
 
 ---
 

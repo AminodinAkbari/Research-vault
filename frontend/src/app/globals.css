@@ -4,22 +4,36 @@
 
 :root {
   /* ONE neutral temperature: zinc */
-  --background: #ffffff;
+  /* Near-white, never pure #ffffff (Design Direction: no pure #000/#fff surfaces) */
+  --background: #fafafa;
   --foreground: #18181b;
 
-  /* ONE accent (locked app-wide) */
+  /*
+   * ONE accent (locked app-wide).
+   * `accent` = links, active text and focus ring (AA against both surfaces).
+   * `accent-solid` = filled surfaces (primary button, info toast) so white
+   * labels clear WCAG AA in both themes.
+   * `*-rgb` channels let Tailwind apply opacity modifiers (`/10` etc.).
+   */
   --accent: #2563eb;
+  --accent-rgb: 37 99 235;
   --accent-hover: #1d4ed8;
+  --accent-solid: #2563eb;
+  --accent-solid-hover: #1d4ed8;
   --accent-foreground: #ffffff;
 
   /* Status colors (exempt from accent lock) */
-  --success: #16a34a;
+  --success: #15803d;
   --warning: #d97706;
-  --danger: #dc2626;
+  --danger: #b91c1c;
+  --danger-rgb: 185 28 28;
+  --danger-solid: #b91c1c;
+  --danger-solid-hover: #991b1b;
 
   /* Muted surfaces */
   --muted: #f4f4f5;
-  --muted-foreground: #71717a;
+  --muted-rgb: 244 244 245;
+  --muted-foreground: #6b6b73;
   --border: #e4e4e7;
   --input: #e4e4e7;
 
@@ -39,15 +53,22 @@
   --background: #18181b;
   --foreground: #fafafa;
 
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
+  --accent: #60a5fa;
+  --accent-rgb: 96 165 250;
+  --accent-hover: #93c5fd;
+  --accent-solid: #2563eb;
+  --accent-solid-hover: #1d4ed8;
   --accent-foreground: #ffffff;
 
-  --success: #22c55e;
+  --success: #15803d;
   --warning: #f59e0b;
-  --danger: #ef4444;
+  --danger: #f87171;
+  --danger-rgb: 248 113 113;
+  --danger-solid: #b91c1c;
+  --danger-solid-hover: #991b1b;
 
   --muted: #27272a;
+  --muted-rgb: 39 39 42;
   --muted-foreground: #a1a1aa;
   --border: #3f3f46;
   --input: #3f3f46;
@@ -60,5 +81,16 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-geist-sans), system-ui, sans-serif;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

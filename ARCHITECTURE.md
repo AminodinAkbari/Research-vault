@@ -70,8 +70,12 @@ deterministic backend without them.
 | Testing                     | **pytest**, **pytest-asyncio**, **aiosqlite**, **httpx.AsyncClient** | Integration tests against the real app; SQLite for fast default runs. |
 | Containerization            | **Docker / Docker Compose**              | Runs app, db, redis, searxng, and the Celery worker as separate services. |
 
-There is no separate frontend build (no Node/webpack/React) — the UI is
-server-rendered HTML enhanced with HTMX, by design (see §4).
+The **server-rendered HTMX UI has no separate frontend build** (no
+Node/webpack/React for that surface) — it is server-rendered HTML enhanced with
+HTMX, by design (see §4). The **Next.js port** lives in `frontend/` as its own
+Node/TypeScript build (`npm run dev` on port 3000) and talks to this API over
+HTTP; see §4 *Frontend/backend boundary and CORS (Next.js port)* for how the
+two origins are reconciled.
 
 ---
 
@@ -313,6 +317,64 @@ login. When Redis is unavailable, behaviour follows `RATE_LIMITER_FAIL_OPEN`
 `false`: fail closed with `503`). Quota headers (`X-RateLimit-Limit`,
 `X-RateLimit-Remaining`, `Retry-After` on 429) are always set so callers can
 see remaining quota before hitting it.
+
+### Frontend/backend boundary and CORS (Next.js port)
+
+**Context.** The ported UI lives in `frontend/` (Next.js 14 App Router + Tailwind,
+TypeScript) and runs on the host with `npm run dev` on port 3000, while the
+FastAPI backend keeps running in Docker on port 8000. The two are separate
+origins, so anything the browser sends *directly* to `:8000` is a cross-origin,
+credentialed request (auth is an httpOnly `access_token` cookie, so
+`credentials: 'include'` is mandatory and `Access-Control-Allow-Credentials`
+must be on).
+
+**Options considered.**
+
+1. **Proxy everything through Next.js** — rewrites route `/api/*` to the
+   backend, all requests stay same-origin, no CORS at all.
+2. **Explicit CORS allowlist on FastAPI** — the browser talks to `:8000`
+   directly.
+3. **Same origin deployment** (serve the built frontend from FastAPI, or put
+   both behind one reverse proxy) — no CORS, but it contradicts the constraint
+   that the backend ships unchanged and the frontend is developed on the host.
+
+**Decision.** Option 1 as the default path, with Option 2 as the required
+escape hatch:
+
+- `frontend/src/lib/api.ts` uses **relative** URLs (`API_BASE = ""`), so every
+  normal API call goes to `http://localhost:3000/api/...` and is proxied by the
+  rewrites in `frontend/next.config.js` (`/api/:path*` →
+  `http://localhost:8000/api/:path*`, `/logout` → `http://localhost:8000/logout`).
+  Same-origin, no CORS preflight, and Playwright's `page.request` (which also
+  uses relative URLs) needs no extra configuration.
+- Direct browser → backend calls still exist (e.g. the session probe in
+  `frontend/src/hooks/useAuth.ts` hits `http://localhost:8000/api/v1/projects`),
+  so `app/main.py` carries an explicit allowlist: the pre-existing `:4200`
+  origins plus `http://localhost:3000` and `http://127.0.0.1:3000`, with
+  `allow_credentials=True`. **Adding those two origins is the only backend
+  change this feature makes** (constraint C-2); no endpoint is added, removed,
+  or altered (C-3).
+- `frontend/.env.example` exposes `NEXT_PUBLIC_API_BASE=http://localhost:8000`
+  as the documented backend location for tooling and for anyone who wants to
+  point the client at the backend directly.
+
+**Consequences.**
+
+- The frontend is a pure client of the documented REST API: no business rules,
+  authorization, validation, or limits live in the browser — client-side checks
+  are UX mirrors of server rules only, and nothing on the frontend reads or
+  stores the JWT (cookie only; constitution *Frontend/Backend Boundary*).
+- The backend's observable behaviour is unchanged apart from two extra allowed
+  origins; the HTMX UI keeps working on its original origins and on
+  same-origin requests.
+- Credentials + `allow_origins=["*"]` cannot be combined, so the allowlist
+  stays explicit. A missed origin surfaces as a browser CORS error, which
+  `specs/001-nextjs-frontend/quickstart.md` maps back to the `origins` list in
+  `app/main.py`.
+- The two mechanisms must stay in sync: if the rewrites in `next.config.js`
+  ever change their destination, or a new frontend origin is added (LAN IP,
+  HTTPS tunnel), both `next.config.js` and the `origins` list in `app/main.py`
+  need checking.
 
 ---
 

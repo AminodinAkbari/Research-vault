@@ -266,38 +266,38 @@ supported and used by the Next.js port where applicable**:
 
 **HTML/HTMX endpoints (root path, `include_in_schema=False`):**
 
-| Method + Path | Purpose | Template(s) Using It |
-|---------------|---------|---------------------|
-| `POST /logout` | Clear auth cookie, redirect to login | `base.html` (form action) |
-| `POST /dashboard/projects` | Create project, return fragment or redirect | `dashboard.html` |
-| `GET /projects/{project_id}` | Full project detail page | (page navigation) |
-| `GET /projects/{project_id}/notes/list` | Notes list fragment | `project_detail.html`, `notes/_edit_form.html` |
-| `GET /projects/{project_id}/notes/{note_id}/edit` | Inline note edit form | `notes/_note_item.html` |
-| `PUT /projects/{project_id}/notes/{note_id}` | Update note, return updated item | `notes/_edit_form.html` |
-| `DELETE /projects/{project_id}/notes/{note_id}` | Delete note | `notes/_note_item.html` |
-| `GET /projects/{project_id}/notes/{note_id}/tags/available` | Available tags picker for a note | `notes/_note_item.html`, `notes/_tag_picker.html` |
-| `POST /projects/{project_id}/notes/{note_id}/tags` | Attach tag to note | `notes/_tag_picker.html` |
-| `DELETE /projects/{project_id}/notes/{note_id}/tags/{tag_id}` | Detach tag from note | `notes/_note_item.html` |
-| `GET /projects/{project_id}/links/list` | Links list fragment | `project_detail.html` |
-| `GET /projects/{project_id}/links/{link_id}` | Single link fragment (poller) | `links/_link_item.html` (hx-trigger load delay:3s) |
-| `GET /projects/{project_id}/links/{link_id}/content` | Extracted content inline view | `links/_link_item.html` |
-| `POST /projects/{project_id}/links/{link_id}/extract` | Trigger re-extraction | `links/_link_item.html` |
-| `DELETE /projects/{project_id}/links/{link_id}` | Delete link | `links/_link_item.html` |
-| `POST /projects/{project_id}/search/web` | Web search results fragment | `project_detail.html` |
-| `POST /projects/{project_id}/links/save` | Save search result as link | `search/_web_results.html` |
-| `GET /projects/{project_id}/search/collected` | Full-text search results fragment | `project_detail.html` |
-| `GET /projects/{project_id}/tags/list` | Tags list fragment | `project_detail.html` |
-| `POST /projects/{project_id}/tags` | Create tag | `project_detail.html` |
-| `DELETE /projects/{project_id}/tags/{tag_id}` | Delete tag | `tags/_tag_item.html` |
-| `GET /projects/{project_id}/tags/{tag_id}/items` | Unified tag-filtered items | `links/_link_item.html`, `notes/_note_item.html`, `tags/_tag_item.html` |
+| Method + Path                                                   | Purpose                                     | Template(s) Using It                                                          |
+| --------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------- |
+| `POST /logout`                                                | Clear auth cookie, redirect to login        | `base.html` (form action)                                                   |
+| `POST /dashboard/projects`                                    | Create project, return fragment or redirect | `dashboard.html`                                                            |
+| `GET /projects/{project_id}`                                  | Full project detail page                    | (page navigation)                                                             |
+| `GET /projects/{project_id}/notes/list`                       | Notes list fragment                         | `project_detail.html`, `notes/_edit_form.html`                            |
+| `GET /projects/{project_id}/notes/{note_id}/edit`             | Inline note edit form                       | `notes/_note_item.html`                                                     |
+| `PUT /projects/{project_id}/notes/{note_id}`                  | Update note, return updated item            | `notes/_edit_form.html`                                                     |
+| `DELETE /projects/{project_id}/notes/{note_id}`               | Delete note                                 | `notes/_note_item.html`                                                     |
+| `GET /projects/{project_id}/notes/{note_id}/tags/available`   | Available tags picker for a note            | `notes/_note_item.html`, `notes/_tag_picker.html`                         |
+| `POST /projects/{project_id}/notes/{note_id}/tags`            | Attach tag to note                          | `notes/_tag_picker.html`                                                    |
+| `DELETE /projects/{project_id}/notes/{note_id}/tags/{tag_id}` | Detach tag from note                        | `notes/_note_item.html`                                                     |
+| `GET /projects/{project_id}/links/list`                       | Links list fragment                         | `project_detail.html`                                                       |
+| `GET /projects/{project_id}/links/{link_id}`                  | Single link fragment (poller)               | `links/_link_item.html` (hx-trigger load delay:3s)                          |
+| `GET /projects/{project_id}/links/{link_id}/content`          | Extracted content inline view               | `links/_link_item.html`                                                     |
+| `POST /projects/{project_id}/links/{link_id}/extract`         | Trigger re-extraction                       | `links/_link_item.html`                                                     |
+| `DELETE /projects/{project_id}/links/{link_id}`               | Delete link                                 | `links/_link_item.html`                                                     |
+| `POST /projects/{project_id}/search/web`                      | Web search results fragment                 | `project_detail.html`                                                       |
+| `POST /projects/{project_id}/links/save`                      | Save search result as link                  | `search/_web_results.html`                                                  |
+| `GET /projects/{project_id}/search/collected`                 | Full-text search results fragment           | `project_detail.html`                                                       |
+| `GET /projects/{project_id}/tags/list`                        | Tags list fragment                          | `project_detail.html`                                                       |
+| `POST /projects/{project_id}/tags`                            | Create tag                                  | `project_detail.html`                                                       |
+| `DELETE /projects/{project_id}/tags/{tag_id}`                 | Delete tag                                  | `tags/_tag_item.html`                                                       |
+| `GET /projects/{project_id}/tags/{tag_id}/items`              | Unified tag-filtered items                  | `links/_link_item.html`, `notes/_note_item.html`, `tags/_tag_item.html` |
 
 **JSON API endpoints under `/api/v1` (missing from API-SPEC.md but implemented with auth/ownership):**
 
-| Method + Path | Purpose |
-|---------------|---------|
-| `GET /api/v1/projects/{project_id}/links/{link_id}/highlights` | List highlights for a link |
-| `POST /api/v1/projects/{project_id}/links/{link_id}/highlights` | Create highlight |
-| `DELETE /api/v1/projects/{project_id}/links/{link_id}/highlights/{highlight_id}` | Delete highlight |
+| Method + Path                                                                      | Purpose                    |
+| ---------------------------------------------------------------------------------- | -------------------------- |
+| `GET /api/v1/projects/{project_id}/links/{link_id}/highlights`                   | List highlights for a link |
+| `POST /api/v1/projects/{project_id}/links/{link_id}/highlights`                  | Create highlight           |
+| `DELETE /api/v1/projects/{project_id}/links/{link_id}/highlights/{highlight_id}` | Delete highlight           |
 
 These three highlight endpoints are already implemented in `app/api/v1/links.py` with full
 authentication and ownership checks but are undocumented in `API-SPEC.md` — they are part of the
@@ -378,7 +378,6 @@ plain, functional, and grammatical; no invented precision numbers in copy.
 - **SC-006**: The primary flow (login → create project → create note → web search → open reader → save highlight) is completable keyboard-only; automated accessibility scans report 0 WCAG AA contrast failures in both themes.
 - **SC-007**: 100% of tested mutations show success or error feedback within 1 second of the server response; no silent failures observed in the mutation test matrix.
 - **SC-008**: Design review of all five screens finds zero banned patterns (purple-gradient hero, pure black/white surfaces, placeholder-as-label, mixed radius systems, emoji-as-icon, Inter-only type).
-- **SC-009**: The existing HTMX UI still passes a five-flow spot checklist (login, dashboard, notes CRUD, search, reader) after the feature ships — proof of Principle III (backend behavior preserved).
 
 ## Assumptions
 
@@ -412,8 +411,7 @@ plain, functional, and grammatical; no invented precision numbers in copy.
   Redis, SearXNG, Celery worker) are already running as Docker Compose services via the existing
   `docker-compose.yml`, with the `app` service bind-mounting the repository root at `.:/app`.
   These containers MUST NOT be created, replaced, or restructured. The Next.js frontend MUST NOT
-  be added as a Docker service — it runs separately on the host from `/frontend` with `npm run
-  dev`. During local development, the frontend communicates with the backend at
+  be added as a Docker service — it runs separately on the host from `/frontend` with `npm run dev`. During local development, the frontend communicates with the backend at
   `http://localhost:8000` (the exposed API port). The Docker Compose file remains unchanged except
   for the already-permitted CORS origin addition in `main.py`. The bind mount means `/frontend`
   is visible inside the `app` container, but the backend MUST NOT be modified to serve or build

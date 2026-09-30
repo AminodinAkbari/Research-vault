@@ -71,8 +71,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               t.type === "success"
                 ? "bg-success"
                 : t.type === "error"
-                ? "bg-danger"
-                : "bg-accent"
+                ? "bg-danger-solid"
+                : "bg-accent-solid"
             }`}
             role="alert"
           >

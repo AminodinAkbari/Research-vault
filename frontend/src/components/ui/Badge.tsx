@@ -13,8 +13,10 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
       warning:
         "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
       danger: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
+      // Type badges stay inside the accent lock: note tints the accent hue,
+      // link uses neutrals. No second accent color anywhere in the kit.
       note: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-      link: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100",
+      link: "bg-muted text-foreground border border-border",
     };
 
     return (

@@ -1,7 +1,6 @@
 ---
 description: "Task list for Next.js frontend port (001-nextjs-frontend)"
 ---
-
 # Tasks: Next.js Frontend (Minimal App Router + Tailwind)
 
 **Input**: Design documents from `/specs/001-nextjs-frontend/`
@@ -246,16 +245,15 @@ implemented, tested, and delivered independently.
 
 **Purpose**: Improvements and compliance affecting multiple user stories
 
-- [ ] T074 [P] Verify endpoint contract coverage: confirm every endpoint the frontend calls is exercised by tests against the tables in `specs/001-nextjs-frontend/contracts/api-endpoints.md`; record gaps in test names, not new endpoints
-- [ ] T075 [P] Run design review (SC-008) across all five screens in `frontend/src/app/` against the design-taste-frontend pre-flight: zero purple-gradient glows, no pure #000/#fff surfaces, no placeholder-as-label, one radius system + pill exception only, no emoji-as-icon, Geist (not Inter) typography, no invented precision numbers in copy
-- [ ] T076 [P] Accessibility pass in `frontend/src/` (FR-027, SC-006): keyboard-only completion of primary flow (login → create project → create note → search → reader → highlight), visible labels/focus rings, aria-live for async results/errors, WCAG AA contrast verified in both themes
-- [ ] T077 [P] Motion audit: all transitions transform/opacity only ≤200ms, prefers-reduced-motion disables non-essential motion, no scroll-hijack or decorative loops in `frontend/src/`
-- [ ] T078 Production build performance check: `npm run build` in `frontend/`; initial JS bundle < 150 kB gzipped; smoke LCP/INP/CLS targets from plan.md
-- [ ] T079 Backend regression: run `docker compose exec app pytest` (repo root) — full suite green (SC-003); spot-check HTMX UI five flows still work — login, dashboard, notes CRUD, search, reader (SC-009)
-- [ ] T080 [P] Document the three JSON highlight endpoints (H1–H3) in `API-SPEC.md` under the Highlights section — closes the documentation gap noted in spec Assumptions (constitution Principle VIII)
-- [ ] T081 [P] Record frontend/backend boundary + CORS decision (context, options, decision, consequences) in `ARCHITECTURE.md` (constitution Principle VIII; no `/app` code changes)
-- [ ] T082 [P] Add frontend development section to `README.md` (npm run dev, env var, CORS note) alongside existing HTMX UI instructions
-- [ ] T083 Run full validation guide in `specs/001-nextjs-frontend/quickstart.md`: prerequisites, setup, all six user-story manual/Playwright checks, lint, typecheck, unit + E2E suites green
+- [X] T074 [P] Verify endpoint contract coverage: confirm every endpoint the frontend calls is exercised by tests against the tables in `specs/001-nextjs-frontend/contracts/api-endpoints.md`; record gaps in test names, not new endpoints
+- [X] T075 [P] Run design review (SC-008) across all five screens in `frontend/src/app/` against the design-taste-frontend pre-flight: zero purple-gradient glows, no pure #000/#fff surfaces, no placeholder-as-label, one radius system + pill exception only, no emoji-as-icon, Geist (not Inter) typography, no invented precision numbers in copy
+- [X] T076 [P] Accessibility pass in `frontend/src/` (FR-027, SC-006): keyboard-only completion of primary flow (login → create project → create note → search → reader → highlight), visible labels/focus rings, aria-live for async results/errors, WCAG AA contrast verified in both themes
+- [X] T077 [P] Motion audit: all transitions transform/opacity only ≤200ms, prefers-reduced-motion disables non-essential motion, no scroll-hijack or decorative loops in `frontend/src/`
+- [X] T078 Production build performance check: `npm run build` in `frontend/`; initial JS bundle < 150 kB gzipped; smoke LCP/INP/CLS targets from plan.md
+- [X] T079 [P] Document the three JSON highlight endpoints (H1–H3) in `API-SPEC.md` under the Highlights section — closes the documentation gap noted in spec Assumptions (constitution Principle VIII)
+- [X] T080 [P] Record frontend/backend boundary + CORS decision (context, options, decision, consequences) in `ARCHITECTURE.md` (constitution Principle VIII; no `/app` code changes)
+- [X] T081 [P] Add frontend development section to `README.md` (npm run dev, env var, CORS note) alongside existing HTMX UI instructions
+- [X] T082 Run full validation guide in `specs/001-nextjs-frontend/quickstart.md`: prerequisites, setup, all six user-story manual/Playwright checks, lint, typecheck, unit + E2E suites green
 
 ---
 
@@ -266,7 +264,7 @@ implemented, tested, and delivered independently.
 - **Setup (Phase 1)**: No dependencies — starts immediately
 - **Foundational (Phase 2)**: Depends on Setup — BLOCKS all user stories (T009 CORS also required before any browser fetch succeeds)
 - **US1 (Phase 3)**: Depends on Foundational — auth guard required by every protected page
-- **US2 (Phase 4)**: Depends on US1 (protected layout + session) 
+- **US2 (Phase 4)**: Depends on US1 (protected layout + session)
 - **US3 (Phase 5)**: Depends on US2 (workspace shell + tab frame)
 - **US4 (Phase 6)**: Depends on US2 (workspace shell + tab frame)
 - **US5 (Phase 7)**: Depends on US2 (project route space); full E2E needs a completed link (seed via US4 or API)
@@ -300,7 +298,7 @@ implemented, tested, and delivered independently.
 - **US5**: T061/T062 parallel (tests), T063/T065/T068 parallel
 - **US6**: T070 parallel with test T069; T073 parallel
 - **Cross-story**: after US2, US3 ∥ US4 ∥ US5 ∥ US6 possible (separate panel component files; coordinate on workspace page slot wiring)
-- **Polish**: T074–T077, T080–T082 parallel
+- **Polish**: T074–T081 mostly parallel
 
 ---
 

@@ -12,7 +12,7 @@
 3. [Notes](#notes)
 4. [Links](#links)
 5. [Tags](#tags)
-6. [Highlights (UI endpoints)](#highlights-ui-endpoints)
+6. [Highlights](#highlights)
 7. [Search](#search)
 8. [AI Endpoints](#ai-endpoints)
 9. [Export](#export)
@@ -842,14 +842,21 @@ Delete a tag by ID. Removes tag from all notes/links.
 
 ---
 
-## Highlights (UI Endpoints)
+## Highlights
+
+Highlights have two parallel implementations:
+
+1. **HTML (HTMX) UI endpoints** — mounted at the root path (`/projects/...`), used by the existing server-rendered UI. Cookie auth only.
+2. **JSON API endpoints** — mounted under `/api/v1`, used by the Next.js frontend (`frontend/src/hooks/useHighlights.ts`). Cookie **or** Bearer auth, same ownership rules as every other `/api/v1/projects/...` route.
+
+### HTML UI endpoints
 
 Highlight endpoints are **server-rendered HTML** (HTMX) endpoints, mounted at root path (`/projects/...`), not under `/api/v1`.
 Authentication via cookie only.
 
 **Base path:** `/projects/{project_id}/links/{link_id}/highlights`
 
-### `GET /projects/{project_id}/links/{link_id}/read`
+#### `GET /projects/{project_id}/links/{link_id}/read`
 
 Reader mode page displaying link content with highlights.
 
@@ -857,7 +864,7 @@ Reader mode page displaying link content with highlights.
 
 ---
 
-### `POST /projects/{project_id}/links/{link_id}/highlights`
+#### `POST /projects/{project_id}/links/{link_id}/highlights`
 
 Create a highlight on a saved link's extracted content.
 
@@ -882,7 +889,7 @@ Create a highlight on a saved link's extracted content.
 
 ---
 
-### `DELETE /projects/{project_id}/links/{link_id}/highlights/{highlight_id}`
+#### `DELETE /projects/{project_id}/links/{link_id}/highlights/{highlight_id}`
 
 Delete a highlight.
 
@@ -891,6 +898,80 @@ Delete a highlight.
 **Error Codes:**
 
 - `404 Not Found` — Link or highlight not found
+
+---
+
+### JSON API endpoints
+
+Implemented in `app/api/v1/links.py`. Auth: `Authorization: Bearer <token>` **or** `access_token` cookie. Project ownership is enforced for every call.
+
+**Base path:** `/api/v1/projects/{project_id}/links/{link_id}/highlights`
+
+#### `GET /api/v1/projects/{project_id}/links/{link_id}/highlights`
+
+List all highlights for a saved link, in creation order.
+
+**Response (200 OK):**
+
+```json
+[
+  {
+    "id": "a1b2c3d4-0000-4000-8000-000000000001",
+    "link_id": "a1b2c3d4-0000-4000-8000-000000000000",
+    "selected_text": "the passage the user selected",
+    "annotation": "why this matters",
+    "start_offset": 412,
+    "end_offset": 452,
+    "color": "yellow",
+    "created_at": "2026-09-30T12:00:00Z"
+  }
+]
+```
+
+**Error Codes:**
+
+- `401 Unauthorized` — Missing or invalid credentials
+- `403 Forbidden` — Project belongs to another user
+- `404 Not Found` — Project or link not found
+
+---
+
+#### `POST /api/v1/projects/{project_id}/links/{link_id}/highlights`
+
+Create a highlight. JSON body (not form data).
+
+**Request Body:**
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `selected_text` | string | yes | Must not be empty/whitespace (422 otherwise) |
+| `annotation` | string \| null | no | Free-text note shown in the highlights panel |
+| `start_offset` | int | no (default 0) | Character offset into `extracted_content` |
+| `end_offset` | int | no (default 0) | Must be > `start_offset` for the client to paint a mark |
+| `color` | string \| null | no | `yellow` \| `blue` \| `green` \| `orange` \| `purple` \| `grey`; unknown/legacy values fall back to yellow client-side |
+
+**Response (201 Created):** the created `HighlightRead` object (same shape as the GET response above).
+
+**Error Codes:**
+
+- `401 Unauthorized` — Missing or invalid credentials
+- `403 Forbidden` — Project belongs to another user
+- `404 Not Found` — Project or link not found
+- `422 Unprocessable Entity` — Empty `selected_text`, or other Pydantic validation failure
+
+---
+
+#### `DELETE /api/v1/projects/{project_id}/links/{link_id}/highlights/{highlight_id}`
+
+Delete a single highlight.
+
+**Response (204 No Content):** Empty body.
+
+**Error Codes:**
+
+- `401 Unauthorized` — Missing or invalid credentials
+- `403 Forbidden` — Project belongs to another user
+- `404 Not Found` — Project, link, or highlight not found
 
 ---
 

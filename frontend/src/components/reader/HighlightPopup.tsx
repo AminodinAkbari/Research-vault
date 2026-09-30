@@ -124,6 +124,7 @@ export function HighlightPopup({
           name="annotation"
           autoComplete="off"
           maxLength={2000}
+          autoFocus
           value={annotation}
           onChange={(event) => setAnnotation(event.target.value)}
           disabled={isSaving}

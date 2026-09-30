@@ -55,19 +55,13 @@ export default function LinkReaderPage() {
 
   useHighlightMarks(articleEl, highlights);
 
-  // FR-023: releasing a selection inside the article opens the popup
+  // FR-023 / FR-027: releasing a selection inside the article opens the popup.
+  // Mouse users get it on mouseup; keyboard users (selection made with the
+  // keyboard, e.g. caret browsing) get it on keyup — no mouse required.
   useEffect(() => {
     if (!articleEl) return;
 
-    const handleMouseUp = (event: MouseEvent) => {
-      const target = event.target;
-      if (
-        target instanceof Element &&
-        target.closest("#highlight-popup") !== null
-      ) {
-        return;
-      }
-
+    const openFromSelection = () => {
       const domSelection = window.getSelection();
       const text = domSelection ? domSelection.toString().trim() : "";
       if (!text || !domSelection || !domSelection.anchorNode) return;
@@ -98,8 +92,31 @@ export default function LinkReaderPage() {
       });
     };
 
+    const handleMouseUp = (event: MouseEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("#highlight-popup") !== null
+      ) {
+        return;
+      }
+      openFromSelection();
+    };
+
+    const handleKeyUp = () => {
+      const active = document.activeElement;
+      if (active instanceof Element && active.closest("#highlight-popup")) {
+        return;
+      }
+      openFromSelection();
+    };
+
     articleEl.addEventListener("mouseup", handleMouseUp);
-    return () => articleEl.removeEventListener("mouseup", handleMouseUp);
+    document.addEventListener("keyup", handleKeyUp);
+    return () => {
+      articleEl.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("keyup", handleKeyUp);
+    };
   }, [articleEl]);
 
   const handleSave = async (payload: HighlightSavePayload) => {
@@ -228,7 +245,11 @@ export default function LinkReaderPage() {
         <div
           id="reader-article"
           ref={setArticleRef}
-          className="space-y-4 text-sm leading-6 text-foreground [&_a]:break-words [&_a]:text-accent [&_a]:underline [&_blockquote]:m-0 [&_h2]:text-lg [&_h2]:font-semibold [&_ul]:m-0 [&_ul]:list-disc [&_ul]:pl-5"
+          // Focusable so keyboard users can reach the article text (FR-027)
+          role="region"
+          aria-label="Article content"
+          tabIndex={0}
+          className="space-y-4 text-sm leading-6 text-foreground scroll-mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_a]:break-words [&_a]:text-accent [&_a]:underline [&_blockquote]:m-0 [&_h2]:text-lg [&_h2]:font-semibold [&_ul]:m-0 [&_ul]:list-disc [&_ul]:pl-5"
           dangerouslySetInnerHTML={{ __html: link.extracted_content ?? "" }}
         />
       ) : (

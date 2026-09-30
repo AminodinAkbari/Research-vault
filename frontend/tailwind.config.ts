@@ -12,23 +12,35 @@ const config: Config = {
         // ONE neutral temperature: zinc
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // ONE accent (locked app-wide)
+        // ONE accent (locked app-wide). `accent` = text/links/ring,
+        // `accent.solid` = filled surfaces (buttons, toasts).
         accent: {
-          DEFAULT: "var(--accent)",
+          DEFAULT: "rgb(var(--accent-rgb) / <alpha-value>)",
           hover: "var(--accent-hover)",
           foreground: "var(--accent-foreground)",
+          solid: "var(--accent-solid)",
+          "solid-hover": "var(--accent-solid-hover)",
         },
         // Status colors (exempt from accent lock)
         success: "var(--success)",
         warning: "var(--warning)",
-        danger: "var(--danger)",
+        danger: {
+          DEFAULT: "rgb(var(--danger-rgb) / <alpha-value>)",
+          solid: "var(--danger-solid)",
+          "solid-hover": "var(--danger-solid-hover)",
+        },
         // Muted surfaces
         muted: {
-          DEFAULT: "var(--muted)",
+          DEFAULT: "rgb(var(--muted-rgb) / <alpha-value>)",
           foreground: "var(--muted-foreground)",
         },
         border: "var(--border)",
         input: "var(--input)",
+        // Focus ring uses the accent so `ring-ring` is never a dead class
+        ring: "rgb(var(--accent-rgb) / <alpha-value>)",
+      },
+      ringOffsetColor: {
+        DEFAULT: "var(--background)",
       },
       borderRadius: {
         // ONE radius token: 8-10px

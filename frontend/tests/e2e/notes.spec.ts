@@ -214,6 +214,34 @@ test.describe("Notes and tags (US3)", () => {
     await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/);
   });
 
+  test("deleting a tag asks for confirmation and removes it from the list", async ({
+    page,
+  }) => {
+    await createProject(page, "Notes Tag Delete Project");
+
+    await page.getByRole("tab", { name: "Tags" }).click();
+    const tagsPanel = page.locator("#tags-panel");
+    await tagsPanel.locator('[name="name"]').fill("Ephemeral");
+    await tagsPanel.getByRole("button", { name: "Add tag" }).click();
+
+    const row = tagsPanel.locator("li").filter({ hasText: "Ephemeral" });
+    await expect(row).toBeVisible();
+
+    await row.getByRole("button", { name: "Delete" }).click();
+    await expect(page.locator("dialog")).toContainText(
+      'Delete tag "Ephemeral"? It will be removed from all notes.'
+    );
+    await page
+      .locator("dialog")
+      .getByRole("button", { name: "Delete" })
+      .click();
+
+    await expect(
+      tagsPanel.locator("li").filter({ hasText: "Ephemeral" })
+    ).toHaveCount(0);
+    await expect(tagsPanel.getByText("No tags yet")).toBeVisible();
+  });
+
   test("shows a loading placeholder while fetching and an empty state when there are no notes", async ({
     page,
   }) => {

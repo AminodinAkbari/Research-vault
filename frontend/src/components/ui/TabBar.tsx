@@ -37,6 +37,8 @@ export const TabBar = forwardRef<HTMLDivElement, TabBarProps>(
       }
 
       onTabChange(tabs[newIndex].id);
+      // WAI-ARIA tabs: focus follows the activated tab
+      document.getElementById(`${tabs[newIndex].id}-tab`)?.focus();
     };
 
     return (

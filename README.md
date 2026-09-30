@@ -131,6 +131,72 @@ You can register a user, create projects, write notes, and explore every endpoin
 
 ---
 
+## Frontend development (Next.js port)
+
+A Next.js 14 (App Router + Tailwind) port of the HTMX UI lives in `frontend/`.
+It is a separate Node build: the backend keeps serving the original HTMX UI on
+http://localhost:8000, so both UIs run side by side.
+
+### Run it
+
+```bash
+# 1. backend up (from the repo root)
+docker compose up -d
+
+# 2. frontend
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+# → http://localhost:3000
+```
+
+### Environment
+
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `NEXT_PUBLIC_API_BASE` | `http://localhost:8000` | Backend API location. The client fetches `/api/...` with relative URLs; Next.js rewrites proxy them to this backend. Restart `npm run dev` after editing `.env.local`. |
+
+### CORS
+
+The frontend runs on port 3000 and the API on port 8000 (different origins):
+
+- **Default path:** API calls use relative URLs and are proxied by the rewrites
+  in `frontend/next.config.js` (`/api/:path*` and `/logout` → `http://localhost:8000`),
+  so they are same-origin and need no CORS.
+- **Direct `:8000` calls** from the browser (e.g. the session probe in
+  `frontend/src/hooks/useAuth.ts`) are cross-origin and rely on the explicit
+  allowlist in `app/main.py`:
+
+```python
+origins = [
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+```
+
+Serve the frontend from another host/port and add that origin to this list.
+Because auth is an httpOnly cookie, every request uses `credentials: 'include'`
+and the API uses `allow_credentials=True` — an `allow_origins=["*"]` wildcard
+is not an option. A missing origin shows up as a CORS error in the browser
+console; see the troubleshooting table in
+[`specs/001-nextjs-frontend/quickstart.md`](specs/001-nextjs-frontend/quickstart.md).
+
+### Checks
+
+```bash
+cd frontend
+npm run lint        # ESLint
+npm run typecheck   # tsc --noEmit
+npm run test        # Vitest unit tests
+npm run test:e2e    # Playwright (backend must be running)
+npm run build       # production build
+```
+
+---
+
 ## Usage (via Swagger)
 
 Once the app is running:
