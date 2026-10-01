@@ -504,6 +504,7 @@ async def test_search_semantic_endpoint_requires_auth(
     _, headers = await make_user()
     project_id = await _make_project(client, headers)
 
+    client.cookies.clear()
     response = await client.post(
         f"/api/v1/projects/{project_id}/search-semantic", json={"query": "docker"}
     )
