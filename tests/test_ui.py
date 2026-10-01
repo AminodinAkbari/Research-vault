@@ -3,6 +3,13 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
+# ---------------------------------------------------------------------------
+# LEGACY UI/HTMX — entire file exercises the removed server-rendered UI
+# (app/api/ui.py: /, /login, /register, /dashboard, HTMX fragments, /logout).
+# Replaced by the Next.js frontend in /frontend. Candidate for deletion.
+# ---------------------------------------------------------------------------
+pytestmark = pytest.mark.legacy_ui
+
 
 @pytest.mark.asyncio
 async def test_root_redirects_to_login_when_logged_out(client: AsyncClient) -> None:

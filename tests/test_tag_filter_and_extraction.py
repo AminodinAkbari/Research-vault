@@ -5,6 +5,14 @@ from unittest.mock import patch
 import pytest
 from httpx import AsyncClient
 
+# ---------------------------------------------------------------------------
+# LEGACY UI/HTMX — entire file exercises removed server-rendered UI routes in
+# app/api/ui_project.py (tag-items fragment, notes/list HTML, manual
+# re-extract UI route, single link-item fragment). Replaced by the Next.js
+# frontend in /frontend. Candidate for deletion.
+# ---------------------------------------------------------------------------
+pytestmark = pytest.mark.legacy_ui
+
 
 async def _register(client: AsyncClient, email: str = "filter-user@example.com") -> None:
     response = await client.post(

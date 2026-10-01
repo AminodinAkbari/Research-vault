@@ -94,6 +94,7 @@ async def test_notes_require_auth(client: AsyncClient, make_user) -> None:
     _, headers = await make_user()
     project_id = await _make_project(client, headers)
 
+    client.cookies.clear()
     response = await client.get(f"/api/v1/projects/{project_id}/notes")
     assert response.status_code == 401
 

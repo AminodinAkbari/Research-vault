@@ -326,6 +326,7 @@ async def test_summarise_endpoint_requires_auth(client: AsyncClient, make_user) 
     project_id = await _make_project(client, headers)
     link_id = await _make_link(client, headers, project_id)
 
+    client.cookies.clear()
     response = await client.post(
         f"/api/v1/projects/{project_id}/links/{link_id}/summarise"
     )

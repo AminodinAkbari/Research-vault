@@ -202,6 +202,7 @@ async def test_search_collected_scoped_to_project(client: AsyncClient, make_user
 async def test_search_collected_requires_auth(client: AsyncClient, make_user) -> None:
     _, headers = await make_user()
     project_id = await _make_project(client, headers)
+    client.cookies.clear()
     response = await client.get(
         f"/api/v1/projects/{project_id}/search-collected",
         params={"q": "test"},

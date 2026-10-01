@@ -36,7 +36,15 @@ async def _create_link_via_api(client: AsyncClient, project_id: str, url: str, t
     return response.json()["id"]
 
 
+# ---------------------------------------------------------------------------
+# LEGACY UI/HTMX tests — reader page (/read) and server-rendered note forms
+# live in app/api/ui_project.py, which is no longer mounted. Replaced by the
+# Next.js frontend in /frontend. Candidates for deletion.
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_reader_page_shows_not_extracted_message(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -48,6 +56,7 @@ async def test_reader_page_shows_not_extracted_message(client: AsyncClient) -> N
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_reader_page_shows_extracted_content(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -66,6 +75,7 @@ async def test_reader_page_shows_extracted_content(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_reader_page_requires_project_ownership(client: AsyncClient) -> None:
     await _register(client, email="reader-owner@example.com")
     project_id = await _create_project_via_ui(client, name="Owner Reader Project")
@@ -79,6 +89,7 @@ async def test_reader_page_requires_project_ownership(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_reader_page_unknown_link_404(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -109,6 +120,7 @@ async def test_create_note_with_source_link_via_api(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_create_note_via_ui_with_source_link(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -124,6 +136,7 @@ async def test_create_note_via_ui_with_source_link(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_edit_note_form_includes_source_link_dropdown(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -142,6 +155,7 @@ async def test_edit_note_form_includes_source_link_dropdown(client: AsyncClient)
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_update_note_can_clear_source_link(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
