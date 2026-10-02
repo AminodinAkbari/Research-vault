@@ -1,3 +1,4 @@
+import { DownloadSimpleIcon } from "@phosphor-icons/react";
 import { endpoints } from "@/lib/endpoints";
 
 export interface ExportButtonProps {
@@ -14,8 +15,9 @@ export function ExportButton({ projectId }: ExportButtonProps) {
       <a
         href={endpoints.exportMarkdown(projectId)}
         download
-        className="inline-flex h-10 items-center rounded border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface px-4 text-sm font-medium tracking-tight text-foreground shadow-elev-1 transition-all duration-150 hover:bg-muted hover:border-foreground/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
+        <DownloadSimpleIcon size={16} weight="regular" aria-hidden="true" />
         Export as Markdown
       </a>
     </div>
