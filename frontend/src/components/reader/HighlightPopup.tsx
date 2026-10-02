@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { motion, useReducedMotion } from "motion/react";
+import { XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { HIGHLIGHT_COLOR_HEX, HIGHLIGHT_COLOR_NAMES } from "@/lib/constants";
@@ -37,6 +39,7 @@ export function HighlightPopup({
   const [color, setColor] = useState<string>("yellow");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const reduce = useReducedMotion();
 
   // FR-023: dismiss on outside click (and Escape, for keyboard users)
   useEffect(() => {
@@ -86,23 +89,27 @@ export function HighlightPopup({
 
   const position = {
     position: "absolute" as const,
-    top: selection.rect.bottom + window.scrollY + 6,
+    top: selection.rect.bottom + window.scrollY + 8,
     left: selection.rect.left + window.scrollX,
     zIndex: 1000,
+    transformOrigin: "top left",
   };
 
   return createPortal(
-    <form
+    <motion.form
       id="highlight-popup"
       ref={popupRef}
       aria-label="Save highlight"
       onSubmit={handleSubmit}
       style={position}
-      className="w-72 rounded-lg border border-border bg-background p-3 shadow-lg"
+      initial={reduce ? false : { opacity: 0, y: -6, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 480, damping: 32, mass: 0.7 }}
+      className="glass w-72 rounded-xl p-3.5"
       noValidate
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-foreground">
+        <span className="text-sm font-medium tracking-tight text-foreground">
           Highlight selection
         </span>
         <button
@@ -110,15 +117,13 @@ export function HighlightPopup({
           aria-label="Close"
           onClick={onClose}
           disabled={isSaving}
-          className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 transition-colors"
         >
-          <span aria-hidden="true" className="text-base leading-none">
-            ×
-          </span>
+          <XIcon size={14} weight="bold" aria-hidden="true" />
         </button>
       </div>
 
-      <div className="mt-2">
+      <div className="mt-3">
         <Input
           label="Note (optional)"
           name="annotation"
@@ -131,14 +136,14 @@ export function HighlightPopup({
         />
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-4 flex items-center gap-2">
         <div
           role="group"
           aria-label="Highlight color"
-          className="flex items-center gap-1"
+          className="flex items-center gap-1.5"
         >
-          {HIGHLIGHT_COLOR_NAMES.map((name) => (
-            <button
+          {HIGHLIGHT_COLOR_NAMES.map((name, index) => (
+            <motion.button
               key={name}
               type="button"
               data-color={name}
@@ -149,8 +154,18 @@ export function HighlightPopup({
               disabled={isSaving}
               onClick={() => handleSwatch(name)}
               style={{ backgroundColor: HIGHLIGHT_COLOR_HEX[name] }}
-              className={`h-5 w-5 rounded-pill border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:opacity-50 ${
-                color === name ? "ring-2 ring-accent ring-offset-1" : ""
+              initial={reduce ? false : { opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 520,
+                damping: 30,
+                delay: reduce ? 0 : 0.06 + index * 0.03,
+              }}
+              whileHover={reduce ? undefined : { scale: 1.15 }}
+              whileTap={{ scale: 0.9 }}
+              className={`h-6 w-6 rounded-pill border border-border/60 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 ${
+                color === name ? "ring-2 ring-accent ring-offset-2" : ""
               }`}
             />
           ))}
@@ -166,11 +181,11 @@ export function HighlightPopup({
       </div>
 
       {error && (
-        <p role="alert" className="mt-2 text-sm text-danger">
+        <p role="alert" className="mt-2.5 text-sm text-danger">
           {error}
         </p>
       )}
-    </form>,
+    </motion.form>,
     document.body
   );
 }
