@@ -3,44 +3,36 @@
 @tailwind utilities;
 
 :root {
-  /* ONE neutral temperature: zinc */
-  /* Near-white, never pure #ffffff (Design Direction: no pure #000/#fff surfaces) */
-  --background: #fafafa;
+  --background: #fafaf8;
   --foreground: #18181b;
-
-  /*
-   * ONE accent (locked app-wide).
-   * `accent` = links, active text and focus ring (AA against both surfaces).
-   * `accent-solid` = filled surfaces (primary button, info toast) so white
-   * labels clear WCAG AA in both themes.
-   * `*-rgb` channels let Tailwind apply opacity modifiers (`/10` etc.).
-   */
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-muted: #f4f4f5;
   --accent: #2563eb;
   --accent-rgb: 37 99 235;
   --accent-hover: #1d4ed8;
   --accent-solid: #2563eb;
   --accent-solid-hover: #1d4ed8;
   --accent-foreground: #ffffff;
-
-  /* Status colors (exempt from accent lock) */
   --success: #15803d;
   --warning: #d97706;
   --danger: #b91c1c;
   --danger-rgb: 185 28 28;
   --danger-solid: #b91c1c;
   --danger-solid-hover: #991b1b;
-
-  /* Muted surfaces */
   --muted: #f4f4f5;
   --muted-rgb: 244 244 245;
-  --muted-foreground: #6b6b73;
+  --muted-foreground: #71717a;
   --border: #e4e4e7;
   --input: #e4e4e7;
-
-  /* ONE radius token: 8px */
   --radius: 8px;
-
-  /* Six highlight colors (exempt from accent lock) */
+  --radius-lg: 16px;
+  --shadow-elev-1: 0 1px 2px rgba(24,24,27,0.04), 0 1px 3px rgba(24,24,27,0.06);
+  --shadow-elev-2: 0 4px 16px rgba(24,24,27,0.06), 0 1px 4px rgba(24,24,27,0.04);
+  --shadow-elev-3: 0 12px 40px -12px rgba(24,24,27,0.12), 0 8px 20px -8px rgba(24,24,27,0.08);
+  --shadow-accent: 0 8px 24px -8px rgba(37,99,235,0.18);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --highlight-yellow: #fff59d;
   --highlight-blue: #b3e5fc;
   --highlight-green: #c8e6c9;
@@ -50,47 +42,199 @@
 }
 
 .dark {
-  --background: #18181b;
+  --background: #0e0e10;
   --foreground: #fafafa;
-
+  --surface: #1a1a1e;
+  --surface-raised: #232329;
+  --surface-muted: #27272a;
   --accent: #60a5fa;
   --accent-rgb: 96 165 250;
   --accent-hover: #93c5fd;
   --accent-solid: #2563eb;
   --accent-solid-hover: #1d4ed8;
   --accent-foreground: #ffffff;
-
-  --success: #15803d;
+  --success: #22c55e;
   --warning: #f59e0b;
   --danger: #f87171;
   --danger-rgb: 248 113 113;
   --danger-solid: #b91c1c;
   --danger-solid-hover: #991b1b;
-
   --muted: #27272a;
   --muted-rgb: 39 39 42;
   --muted-foreground: #a1a1aa;
-  --border: #3f3f46;
-  --input: #3f3f46;
+  --border: #2e2e32;
+  --input: #2e2e32;
+  --shadow-elev-1: 0 1px 2px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-elev-2: 0 4px 16px rgba(0,0,0,0.3), 0 1px 4px rgba(0,0,0,0.2);
+  --shadow-elev-3: 0 12px 40px -12px rgba(0,0,0,0.5), 0 8px 20px -8px rgba(0,0,0,0.4);
+  --shadow-accent: 0 8px 24px -8px rgba(96,165,250,0.2);
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
+  html { scrollbar-gutter: stable; }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-geist-sans), system-ui, sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(37,99,235,0.06), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(120,119,198,0.05), transparent 60%),
+      radial-gradient(800px 800px at 50% 100%, rgba(37,99,235,0.03), transparent 70%);
+  }
+  .dark body::before {
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(96,165,250,0.08), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(120,119,198,0.06), transparent 60%),
+      radial-gradient(800px 800px at 50% 100%, rgba(96,165,250,0.04), transparent 70%);
   }
 }
 
+@layer components {
+  .app-wrap {
+    width: 100%;
+    max-width: 1180px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .app-wrap { padding-inline: 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .app-wrap { padding-inline: 2rem; }
+  }
+  .glass {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(228,228,231,0.7);
+    box-shadow: var(--shadow-elev-2), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .dark .glass {
+    background: rgba(26,26,30,0.72);
+    border-color: rgba(46,46,50,0.7);
+    box-shadow: var(--shadow-elev-2), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .sheet {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-elev-2);
+  }
+  .sheet-soft {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-elev-1);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--surface); }
+  }
+}
+
+mark.highlight {
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  /* The six highlight colors are always light pastels, so keep the marked
+     text dark in both themes for WCAG AA contrast. */
+  color: #18181b;
+}
+
+mark.highlight.hl-enter {
+  --hl: #fff59d;
+  background-image: linear-gradient(var(--hl), var(--hl));
+  background-repeat: no-repeat;
+  animation: hlWipe 620ms var(--ease-expo), hlGlow 780ms var(--ease-expo);
+}
+
+@keyframes hlWipe {
+  0% {
+    background-color: transparent;
+    background-size: 0% 100%;
+  }
+  96% {
+    background-color: transparent;
+  }
+  100% {
+    background-color: var(--hl);
+    background-size: 100% 100%;
+  }
+}
+
+@keyframes hlGlow {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--hl) 55%, transparent);
+  }
+  45% {
+    box-shadow:
+      0 0 0 8px color-mix(in srgb, var(--hl) 20%, transparent),
+      0 0 16px 4px color-mix(in srgb, var(--hl) 28%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 16px color-mix(in srgb, var(--hl) 0%, transparent),
+      0 0 26px 8px color-mix(in srgb, var(--hl) 0%, transparent);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#reader-article {
+  font-family: var(--font-newsreader), Georgia, serif;
+  font-size: 17px;
+  line-height: 1.75;
+  letter-spacing: -0.011em;
+  color: var(--foreground);
+}
+
+#reader-article p { margin: 0 0 1.15em 0; }
+#reader-article p:last-child { margin-bottom: 0; }
+#reader-article h2 {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 2em 0 0.6em;
+  line-height: 1.3;
+}
+#reader-article blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: 1rem;
+  margin: 1.5em 0;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+#reader-article a { text-underline-offset: 3px; }
+#reader-article ul, #reader-article ol { margin: 1em 0 1.25em; padding-left: 1.4em; }
+#reader-article li { margin: 0.35em 0; }
+
+@media (max-width: 640px) {
+  #reader-article { font-size: 16px; line-height: 1.7; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  mark.highlight.hl-enter { animation: none !important; }
 }
