@@ -16,7 +16,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const helperId = `${inputId}-helper`;
 
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         <label
           htmlFor={inputId}
           className="text-sm font-medium text-foreground"
@@ -28,8 +28,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           aria-invalid={!!error}
           aria-describedby={error ? errorId : helperText ? helperId : undefined}
-          className={`h-10 w-full rounded border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-            error ? "border-danger" : ""
+          className={`h-10 w-full rounded border bg-surface px-3 text-sm text-foreground placeholder:text-muted-foreground/70 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 focus:border-accent/40 disabled:cursor-not-allowed disabled:opacity-50 ${
+            error ? "border-danger focus:ring-danger/30" : "border-input"
           } ${className}`}
           {...props}
         />

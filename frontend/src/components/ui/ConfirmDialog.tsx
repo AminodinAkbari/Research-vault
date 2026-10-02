@@ -49,15 +49,15 @@ export function ConfirmDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="rounded-lg border border-border bg-background p-0 max-w-md w-full backdrop:bg-black/50"
+      className="glass rounded-xl p-0 max-w-md w-full backdrop:bg-black/40 backdrop:backdrop-blur-sm"
       aria-labelledby="confirm-title"
     >
-      <div className="p-6 flex flex-col gap-4">
+      <div className="p-6 flex flex-col gap-5">
         <div>
-          <h2 id="confirm-title" className="text-lg font-semibold text-foreground">
+          <h2 id="confirm-title" className="text-lg font-semibold tracking-tight text-foreground">
             {title}
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{message}</p>
         </div>
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onCancel} disabled={isLoading}>

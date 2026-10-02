@@ -26,15 +26,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      "inline-flex items-center justify-center font-medium transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none active:translate-y-px";
+      "inline-flex items-center justify-center font-medium tracking-tight transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] active:translate-y-px";
 
     const variants = {
       primary:
-        "bg-accent-solid text-accent-foreground hover:bg-accent-solid-hover shadow-sm hover:shadow",
+        "bg-accent-solid text-accent-foreground hover:bg-accent-solid-hover shadow-sm hover:shadow-md",
       secondary:
-        "bg-muted text-foreground hover:bg-muted/80 border border-border",
+        "bg-surface text-foreground hover:bg-muted border border-border shadow-elev-1",
       outline:
-        "border border-border bg-transparent hover:bg-muted text-foreground",
+        "border border-border bg-transparent hover:bg-muted hover:border-foreground/20 text-foreground",
       ghost: "hover:bg-muted text-foreground",
       danger:
         "bg-danger-solid text-white hover:bg-danger-solid-hover shadow-sm",
@@ -43,7 +43,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const sizes = {
       sm: "h-8 px-3 text-sm rounded",
       md: "h-10 px-4 text-sm rounded",
-      lg: "h-12 px-6 text-base rounded",
+      lg: "h-12 px-6 text-base rounded-md",
     };
 
     return (
