@@ -92,7 +92,7 @@ export function NoteListItem({
   return (
     <article
       id={`note-${note.id}`}
-      className="border border-border rounded-lg p-4 bg-background"
+      className="sheet-soft p-4 transition-colors hover:border-foreground/15"
     >
       {isEditing ? (
         <NoteEditForm

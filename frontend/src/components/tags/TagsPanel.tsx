@@ -74,7 +74,7 @@ export function TagsPanel({ projectId, onTagClick }: TagsPanelProps) {
       <form
         onSubmit={handleSubmit}
         aria-label="Create a new tag"
-        className="flex flex-col gap-4 border border-border rounded-lg p-4"
+        className="sheet-soft flex flex-col gap-4 p-4"
         noValidate
       >
         <Input
@@ -109,7 +109,7 @@ export function TagsPanel({ projectId, onTagClick }: TagsPanelProps) {
               <li
                 key={tag.id}
                 id={`tag-${tag.id}`}
-                className="flex items-center justify-between gap-3 border border-border rounded-lg px-4 py-2"
+                className="sheet-soft flex items-center justify-between gap-3 px-4 py-2.5"
               >
                 {onTagClick ? (
                   <button
