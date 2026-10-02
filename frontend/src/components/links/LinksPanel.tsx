@@ -93,7 +93,7 @@ export function LinksPanel({ projectId, onTagClick }: LinksPanelProps) {
               <li key={link.id}>
                 <article
                   id={`link-${link.id}`}
-                  className="border border-border rounded-lg p-4 bg-background"
+                  className="sheet-soft p-4 transition-colors hover:border-foreground/15"
                 >
                   <header className="flex items-center justify-between gap-3">
                     <Link
