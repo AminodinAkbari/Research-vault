@@ -1,7 +1,7 @@
 "use client";
 
 import { HTMLAttributes, forwardRef, ReactNode } from "react";
-import { SquaresFour } from "@phosphor-icons/react";
+import { SquaresFourIcon } from "@phosphor-icons/react";
 
 export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
   title: string;
@@ -18,7 +18,7 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
         {...props}
       >
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/70 text-muted-foreground">
-          <SquaresFour size={24} weight="regular" aria-hidden="true" />
+          <SquaresFourIcon size={24} weight="regular" aria-hidden="true" />
         </div>
         <div className="text-base font-medium tracking-tight text-foreground">{title}</div>
         {description && (

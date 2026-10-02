@@ -5,7 +5,7 @@ import { ProjectCreateForm } from "@/components/forms/ProjectCreateForm";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { EmptyState, LoadingSkeleton } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Plus } from "@phosphor-icons/react";
+import { PlusIcon } from "@phosphor-icons/react";
 
 export default function DashboardPage() {
   const { projects, isLoading, isError } = useProjects();
@@ -52,7 +52,7 @@ export default function DashboardPage() {
 
       <div className="sheet-soft p-5 sm:p-6">
         <div className="mb-4 flex items-center gap-2 text-sm font-medium tracking-tight text-foreground">
-          <Plus size={16} weight="bold" aria-hidden="true" />
+          <PlusIcon size={16} weight="bold" aria-hidden="true" />
           New project
         </div>
         <ProjectCreateForm />
