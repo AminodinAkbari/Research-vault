@@ -22,8 +22,9 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-accent" />
+        <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     );
   }
@@ -35,7 +36,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
+      <main className="flex-1 app-wrap py-10 sm:py-12">
         {children}
       </main>
     </div>

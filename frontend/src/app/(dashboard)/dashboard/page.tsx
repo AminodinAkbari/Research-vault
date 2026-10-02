@@ -3,16 +3,27 @@
 import { useProjects } from "@/hooks/useProjects";
 import { ProjectCreateForm } from "@/components/forms/ProjectCreateForm";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState, LoadingSkeleton } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
+import { Plus } from "@phosphor-icons/react";
 
 export default function DashboardPage() {
   const { projects, isLoading, isError } = useProjects();
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-muted-foreground">Loading projects...</p>
+      <div className="space-y-8">
+        <div className="space-y-3">
+          <div className="h-8 w-52 animate-pulse rounded-md bg-muted" />
+          <div className="h-4 w-72 animate-pulse rounded bg-muted" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="sheet-soft p-5">
+              <LoadingSkeleton lines={3} />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -29,15 +40,23 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Your projects</h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="space-y-8">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-foreground">
+          Your projects
+        </h1>
+        <p className="text-muted-foreground">
           Isolated containers for each research topic.
         </p>
       </div>
 
-      <ProjectCreateForm />
+      <div className="sheet-soft p-5 sm:p-6">
+        <div className="mb-4 flex items-center gap-2 text-sm font-medium tracking-tight text-foreground">
+          <Plus size={16} weight="bold" aria-hidden="true" />
+          New project
+        </div>
+        <ProjectCreateForm />
+      </div>
 
       {projects.length === 0 ? (
         <EmptyState

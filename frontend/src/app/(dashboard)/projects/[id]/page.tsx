@@ -95,27 +95,32 @@ export default function ProjectWorkspacePage() {
   return (
     <div className="space-y-6">
       {/* Header with back navigation and project info */}
-      <div>
+      <header className="space-y-2.5">
         <Link
           href="/dashboard"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-2 inline-block"
+          className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          ← Back to projects
+          <span className="transition-transform group-hover:-translate-x-0.5">←</span>
+          Back to projects
         </Link>
-        <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="font-reading text-3xl sm:text-4xl font-medium leading-[1.1] tracking-tight text-foreground">
+          {project.name}
+        </h1>
+        <p className="text-muted-foreground max-w-2xl">
           {project.description || "No description yet."}
         </p>
+      </header>
+
+      {/* Search + export toolbar */}
+      <div className="sheet-soft flex flex-col gap-5 p-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <ProjectSearchBox
+            projectId={project.id}
+            onNoteSelect={handleNoteSelect}
+          />
+        </div>
+        <ExportButton projectId={project.id} />
       </div>
-
-      {/* Search box area */}
-      <ProjectSearchBox
-        projectId={project.id}
-        onNoteSelect={handleNoteSelect}
-      />
-
-      {/* Export button */}
-      <ExportButton projectId={project.id} />
 
       {/* Tag filter results area */}
       {tagFilter && (
@@ -131,14 +136,16 @@ export default function ProjectWorkspacePage() {
       )}
 
       {/* Tabs */}
-      <TabBar
-        tabs={TABS.map((t) => ({ id: t.id, label: t.label }))}
-        activeTab={activeTab}
-        onTabChange={(tabId) => setActiveTab(tabId as TabId)}
-      />
+      <div className="glass w-fit max-w-full rounded-xl p-1.5">
+        <TabBar
+          tabs={TABS.map((t) => ({ id: t.id, label: t.label }))}
+          activeTab={activeTab}
+          onTabChange={(tabId) => setActiveTab(tabId as TabId)}
+        />
+      </div>
 
       {/* Tab panels */}
-      <div className="mt-6">
+      <div>
         <div id="notes-panel" role="tabpanel" aria-labelledby="notes-panel-tab" hidden={activeTab !== "notes-panel"}>
           <NotesPanel projectId={project.id} onTagClick={handleTagClick} />
         </div>
