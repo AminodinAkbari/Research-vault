@@ -60,7 +60,7 @@ export function WebSearchPanel({ projectId }: WebSearchPanelProps) {
       <form
         onSubmit={handleSubmit}
         aria-label="Search the web"
-        className="flex flex-col gap-4 border border-border rounded-lg p-4"
+        className="sheet-soft flex flex-col gap-4 p-4"
         noValidate
       >
         <Input
@@ -89,7 +89,7 @@ export function WebSearchPanel({ projectId }: WebSearchPanelProps) {
           return (
             <article
               key={`${result.url}-${index}`}
-              className="border border-border rounded-lg p-4 bg-background"
+              className="sheet-soft p-4"
             >
               <header className="flex items-center justify-between gap-3">
                 <a

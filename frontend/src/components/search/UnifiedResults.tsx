@@ -34,7 +34,7 @@ export function UnifiedResults({
           : `/projects/${projectId}/links/${result.id}/read`;
         return (
           <li key={`${result.type}-${result.id}`}>
-            <article className="rounded-lg border border-border bg-background p-3">
+            <article className="sheet-soft p-3.5">
               <header className="flex items-center gap-2">
                 <Badge variant={isNote ? "note" : "link"}>
                   {isNote ? "Note" : "Link"}
