@@ -61,26 +61,30 @@ export function ProjectCreateForm({ onSuccess }: ProjectCreateFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-      <Input
-        label="Project name"
-        name="name"
-        required
-        maxLength={200}
-        placeholder="Project name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        error={error}
-      />
-      <Input
-        label="Description (optional)"
-        name="description"
-        maxLength={2000}
-        placeholder="Description (optional)"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-      />
-      <Button type="submit" isLoading={isCreating} className="w-full">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 lg:flex-row lg:items-end" noValidate>
+      <div className="flex-1 min-w-0">
+        <Input
+          label="Project name"
+          name="name"
+          required
+          maxLength={200}
+          placeholder="Project name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          error={error}
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <Input
+          label="Description (optional)"
+          name="description"
+          maxLength={2000}
+          placeholder="Description (optional)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </div>
+      <Button type="submit" isLoading={isCreating} className="w-full lg:w-auto shrink-0">
         Create
       </Button>
     </form>
