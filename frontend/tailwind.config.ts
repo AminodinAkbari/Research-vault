@@ -7,13 +7,27 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: "1rem",
+        sm: "1.5rem",
+        lg: "2rem",
+        xl: "2.5rem",
+      },
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
       colors: {
-        // ONE neutral temperature: zinc
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // ONE accent (locked app-wide). `accent` = text/links/ring,
-        // `accent.solid` = filled surfaces (buttons, toasts).
+        surface: {
+          DEFAULT: "var(--surface)",
+          raised: "var(--surface-raised)",
+          muted: "var(--surface-muted)",
+        },
         accent: {
           DEFAULT: "rgb(var(--accent-rgb) / <alpha-value>)",
           hover: "var(--accent-hover)",
@@ -21,7 +35,6 @@ const config: Config = {
           solid: "var(--accent-solid)",
           "solid-hover": "var(--accent-solid-hover)",
         },
-        // Status colors (exempt from accent lock)
         success: "var(--success)",
         warning: "var(--warning)",
         danger: {
@@ -29,30 +42,36 @@ const config: Config = {
           solid: "var(--danger-solid)",
           "solid-hover": "var(--danger-solid-hover)",
         },
-        // Muted surfaces
         muted: {
           DEFAULT: "rgb(var(--muted-rgb) / <alpha-value>)",
           foreground: "var(--muted-foreground)",
         },
         border: "var(--border)",
         input: "var(--input)",
-        // Focus ring uses the accent so `ring-ring` is never a dead class
         ring: "rgb(var(--accent-rgb) / <alpha-value>)",
       },
-      ringOffsetColor: {
-        DEFAULT: "var(--background)",
+      fontFamily: {
+        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "ui-monospace", "monospace"],
+        reading: ["var(--font-newsreader)", "Georgia", "serif"],
       },
       borderRadius: {
-        // ONE radius token: 8-10px
         DEFAULT: "var(--radius)",
         sm: "calc(var(--radius) - 2px)",
-        lg: "var(--radius)",
-        xl: "calc(var(--radius) + 4px)",
-        // Pill exception: tag chips/status badges
+        md: "var(--radius)",
+        lg: "calc(var(--radius) + 4px)",
+        xl: "var(--radius-lg)",
+        "2xl": "calc(var(--radius-lg) + 4px)",
         pill: "9999px",
       },
+      boxShadow: {
+        "elev-1": "var(--shadow-elev-1)",
+        "elev-2": "var(--shadow-elev-2)",
+        "elev-3": "var(--shadow-elev-3)",
+        accent: "var(--shadow-accent)",
+        "inner-highlight": "inset 0 1px 0 rgba(255,255,255,0.6)",
+      },
       spacing: {
-        // 4px base scale
         "1": "4px",
         "2": "8px",
         "3": "12px",
@@ -66,6 +85,30 @@ const config: Config = {
         "16": "64px",
         "20": "80px",
         "24": "96px",
+      },
+      keyframes: {
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        fadeUp: {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        popIn: {
+          "0%": { transform: "scale(0.85)", opacity: "0" },
+          "55%": { transform: "scale(1.04)" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+      },
+      animation: {
+        shimmer: "shimmer 1.8s linear infinite",
+        fadeUp: "fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both",
+        popIn: "popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both",
+      },
+      transitionTimingFunction: {
+        expo: "cubic-bezier(0.16, 1, 0.3, 1)",
+        out: "cubic-bezier(0.22, 1, 0.36, 1)",
       },
     },
   },
