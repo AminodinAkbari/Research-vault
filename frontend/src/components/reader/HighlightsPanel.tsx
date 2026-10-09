@@ -77,7 +77,7 @@ export function HighlightsPanel({
 
   if (isError) {
     return (
-      <aside aria-label="Highlights" className="sheet-soft p-5">
+      <aside aria-label="Highlights" className="sheet p-5">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
           Highlights
         </h2>
@@ -98,7 +98,7 @@ export function HighlightsPanel({
   return (
     <aside
       aria-label="Highlights"
-      className="sheet-soft flex max-h-[inherit] flex-col p-5"
+      className="sheet flex max-h-[inherit] flex-col p-5"
     >
       <div className="flex shrink-0 items-center justify-between gap-2">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
@@ -152,7 +152,7 @@ export function HighlightsPanel({
                     delay:
                       reduce || !firstRender.current ? 0 : index * 0.05,
                   }}
-                  className="group relative flex flex-col gap-2 rounded-lg border border-border bg-background p-3 transition-colors hover:border-foreground/15"
+                  className="group relative flex flex-col gap-2 rounded-lg border border-border bg-surface/60 p-3 transition-colors hover:border-foreground/15"
                 >
                   <span
                     aria-hidden="true"

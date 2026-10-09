@@ -50,7 +50,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="sheet-soft p-5 sm:p-6">
+      <div className="sheet p-5 sm:p-6">
         <div className="mb-4 flex items-center gap-2 text-sm font-medium tracking-tight text-foreground">
           <PlusIcon size={16} weight="bold" aria-hidden="true" />
           New project

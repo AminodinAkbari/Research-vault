@@ -38,7 +38,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md animate-fadeUp">
         <div className="sheet p-8 sm:p-10">
           <div className="mb-8 flex flex-col items-center text-center">

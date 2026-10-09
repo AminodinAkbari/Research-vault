@@ -2,12 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   TOKENS — light: warm editorial research workspace
+   ============================================================ */
 :root {
-  --background: #fafaf8;
-  --foreground: #18181b;
-  --surface: #ffffff;
+  color-scheme: light;
+
+  /* base */
+  --background: #f4f3ef;
+  --background-rgb: 244 243 239;
+  --foreground: #1f1e1b;
+  --foreground-rgb: 31 30 27;
+  --surface: #fcfbf9;
+  --surface-rgb: 252 251 249;
   --surface-raised: #ffffff;
-  --surface-muted: #f4f4f5;
+  --surface-raised-rgb: 255 255 255;
+  --surface-muted: #eeece6;
+  --surface-muted-rgb: 238 236 230;
   --accent: #2563eb;
   --accent-rgb: 37 99 235;
   --accent-hover: #1d4ed8;
@@ -20,19 +31,57 @@
   --danger-rgb: 185 28 28;
   --danger-solid: #b91c1c;
   --danger-solid-hover: #991b1b;
-  --muted: #f4f4f5;
-  --muted-rgb: 244 244 245;
-  --muted-foreground: #71717a;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --radius: 8px;
+  --muted: #eeece6;
+  --muted-rgb: 238 236 230;
+  --muted-foreground: #736e67;
+  --muted-foreground-rgb: 115 110 103;
+  --border: #e5e1d8;
+  --border-rgb: 229 225 216;
+  --input: #e0dbd1;
+  --input-rgb: 224 219 209;
+  --radius: 18px;
   --radius-lg: 16px;
-  --shadow-elev-1: 0 1px 2px rgba(24,24,27,0.04), 0 1px 3px rgba(24,24,27,0.06);
-  --shadow-elev-2: 0 4px 16px rgba(24,24,27,0.06), 0 1px 4px rgba(24,24,27,0.04);
-  --shadow-elev-3: 0 12px 40px -12px rgba(24,24,27,0.12), 0 8px 20px -8px rgba(24,24,27,0.08);
+
+  /* shadows, warm-tinted to the light background */
+  --shadow-elev-1: 0 1px 2px rgba(40,34,26,0.05), 0 1px 3px rgba(40,34,26,0.06);
+  --shadow-elev-2: 0 4px 16px rgba(40,34,26,0.07), 0 1px 4px rgba(40,34,26,0.05);
+  --shadow-elev-3: 0 12px 40px -12px rgba(40,34,26,0.16), 0 8px 20px -8px rgba(40,34,26,0.10);
   --shadow-accent: 0 8px 24px -8px rgba(37,99,235,0.18);
   --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --atmos-1: rgba(133, 233, 120, 0.48); /* warm apricot, upper-left  */
+  --atmos-2: rgba(154, 182, 216, 0.42); /* soft sky, upper-right     */
+  --atmos-3: rgba(178, 198, 166, 0.36); /* sage, lower-right         */
+  --atmos-4: rgba(219, 186, 176, 0.34); /* blush, center-left        */
+  --atmos-5: rgba(224, 202, 156, 0.30); /* wheat, lower-left         */
+
+  /* glass material hierarchy
+     primary   -> workspace panels, reader-adjacent surfaces
+     secondary -> cards, list items, result rows
+     floating  -> dialogs, popups, tab strip, header            */
+  --glass-1-bg: rgba(255, 255, 255, 0.72);
+  --glass-1-border: rgba(31, 30, 27, 0.09);
+  --glass-1-hi: rgba(255, 255, 255, 0.7);
+  --glass-1-blur: 14px;
+
+  --glass-2-bg: rgba(255, 255, 255, 0.55);
+  --glass-2-border: rgba(31, 30, 27, 0.08);
+  --glass-2-hi: rgba(255, 255, 255, 0.55);
+  --glass-2-blur: 22px;
+
+  --glass-3-bg: rgba(255, 255, 255, 0.8);
+  --glass-3-border: rgba(31, 30, 27, 0.11);
+  --glass-3-hi: rgba(255, 255, 255, 0.85);
+  --glass-3-blur: 18px;
+
+  /* reader stays a touch more opaque so text dominates the material */
+  --glass-reader-bg: rgba(255, 255, 255, 0.86);
+  --glass-reader-blur: 16px;
+
+  --glass-header-bg: rgba(244, 243, 239, 0.78);
+  --glass-header-border: rgba(31, 30, 27, 0.08);
+
   --highlight-yellow: #fff59d;
   --highlight-blue: #b3e5fc;
   --highlight-green: #c8e6c9;
@@ -41,12 +90,22 @@
   --highlight-grey: #f0f0f0;
 }
 
+/* ============================================================
+   TOKENS — dark: deep charcoal, cooler and deeper, not an inversion
+   ============================================================ */
 .dark {
-  --background: #0e0e10;
-  --foreground: #fafafa;
-  --surface: #1a1a1e;
-  --surface-raised: #232329;
-  --surface-muted: #27272a;
+  color-scheme: dark;
+
+  --background: #121317;
+  --background-rgb: 18 19 23;
+  --foreground: #ecedef;
+  --foreground-rgb: 236 237 239;
+  --surface: #1a1c20;
+  --surface-rgb: 26 28 32;
+  --surface-raised: #22242a;
+  --surface-raised-rgb: 34 36 42;
+  --surface-muted: #24262c;
+  --surface-muted-rgb: 36 38 44;
   --accent: #60a5fa;
   --accent-rgb: 96 165 250;
   --accent-hover: #93c5fd;
@@ -59,15 +118,61 @@
   --danger-rgb: 248 113 113;
   --danger-solid: #b91c1c;
   --danger-solid-hover: #991b1b;
-  --muted: #27272a;
-  --muted-rgb: 39 39 42;
-  --muted-foreground: #a1a1aa;
-  --border: #2e2e32;
-  --input: #2e2e32;
+  --muted: #24262c;
+  --muted-rgb: 36 38 44;
+  --muted-foreground: #9ca0a8;
+  --muted-foreground-rgb: 156 160 168;
+  --border: #2c2e34;
+  --border-rgb: 44 46 52;
+  --input: #33353b;
+  --input-rgb: 51 53 59;
   --shadow-elev-1: 0 1px 2px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.3);
   --shadow-elev-2: 0 4px 16px rgba(0,0,0,0.3), 0 1px 4px rgba(0,0,0,0.2);
   --shadow-elev-3: 0 12px 40px -12px rgba(0,0,0,0.5), 0 8px 20px -8px rgba(0,0,0,0.4);
   --shadow-accent: 0 8px 24px -8px rgba(96,165,250,0.2);
+
+  /* atmosphere: deep, cool ambient regions over near-black */
+  --atmos-1: rgba(52, 84, 172, 0.44);  /* indigo blue, upper-left   */
+  --atmos-2: rgba(40, 118, 124, 0.34); /* deep teal, upper-right    */
+  --atmos-3: rgba(70, 92, 154, 0.32);  /* slate blue, lower-right   */
+  --atmos-4: rgba(162, 100, 60, 0.2);  /* faint ember, center-left  */
+  --atmos-5: rgba(56, 128, 138, 0.26); /* cool cyan, lower-left     */
+
+  --glass-1-bg: rgba(30, 32, 38, 0.72);
+  --glass-1-border: rgba(255, 255, 255, 0.09);
+  --glass-1-hi: rgba(255, 255, 255, 0.05);
+  --glass-1-blur: 14px;
+
+  --glass-2-bg: rgba(26, 28, 33, 0.55);
+  --glass-2-border: rgba(255, 255, 255, 0.075);
+  --glass-2-hi: rgba(255, 255, 255, 0.04);
+  --glass-2-blur: 22px;
+
+  --glass-3-bg: rgba(36, 38, 45, 0.82);
+  --glass-3-border: rgba(255, 255, 255, 0.12);
+  --glass-3-hi: rgba(255, 255, 255, 0.07);
+  --glass-3-blur: 18px;
+
+  --glass-reader-bg: rgba(22, 23, 27, 0.86);
+  --glass-reader-blur: 16px;
+
+  --glass-header-bg: rgba(18, 19, 23, 0.78);
+  --glass-header-border: rgba(255, 255, 255, 0.07);
+}
+
+/* ============================================================
+   ATMOSPHERE — large, soft, slowly drifting ambient gradient
+   ============================================================ */
+@keyframes atmosDriftA {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(2.6%, -2%, 0) scale(1.07); }
+  100% { transform: translate3d(-1.8%, 2.4%, 0) scale(1.02); }
+}
+
+@keyframes atmosDriftB {
+  0%   { transform: translate3d(0, 0, 0) scale(1.04); }
+  50%  { transform: translate3d(-2.4%, 2.2%, 0) scale(1); }
+  100% { transform: translate3d(2.2%, -1.6%, 0) scale(1.06); }
 }
 
 @layer base {
@@ -79,25 +184,42 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
-  body::before {
+
+  /* Two oversized fixed layers, offset far beyond the viewport so the
+     slow drift never reveals an edge. Colours come from tokens, so the
+     light and dark atmospheres are intentionally different moods. */
+  body::before,
+  body::after {
     content: "";
     position: fixed;
-    inset: 0;
+    inset: -16%;
     pointer-events: none;
     z-index: -1;
-    background:
-      radial-gradient(1200px 600px at 20% -10%, rgba(37,99,235,0.06), transparent 60%),
-      radial-gradient(900px 500px at 90% 0%, rgba(120,119,198,0.05), transparent 60%),
-      radial-gradient(800px 800px at 50% 100%, rgba(37,99,235,0.03), transparent 70%);
+    will-change: transform;
   }
-  .dark body::before {
+  body::before {
     background:
-      radial-gradient(1200px 600px at 20% -10%, rgba(96,165,250,0.08), transparent 60%),
-      radial-gradient(900px 500px at 90% 0%, rgba(120,119,198,0.06), transparent 60%),
-      radial-gradient(800px 800px at 50% 100%, rgba(96,165,250,0.04), transparent 70%);
+      radial-gradient(42% 38% at 15% 12%, var(--atmos-1), transparent 68%),
+      radial-gradient(46% 42% at 86% 16%, var(--atmos-2), transparent 68%),
+      radial-gradient(52% 46% at 72% 90%, var(--atmos-3), transparent 70%);
+  }
+  body::after {
+    background:
+      radial-gradient(38% 34% at 42% 58%, var(--atmos-4), transparent 70%),
+      radial-gradient(40% 36% at 8% 84%, var(--atmos-5), transparent 70%);
+  }
+
+  /* Almost subconscious movement: two layers, different durations, so the
+     colour relationships shift without ever reading as a looping blob. */
+  @media (prefers-reduced-motion: no-preference) {
+    body::before { animation: atmosDriftA 95s ease-in-out infinite alternate; }
+    body::after  { animation: atmosDriftB 130s ease-in-out infinite alternate; }
   }
 }
 
+/* ============================================================
+   MATERIALS — three glass tiers + reader surface
+   ============================================================ */
 @layer components {
   .app-wrap {
     width: 100%;
@@ -111,32 +233,65 @@
   @media (min-width: 1024px) {
     .app-wrap { padding-inline: 2rem; }
   }
-  .glass {
-    background: rgba(255,255,255,0.72);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid rgba(228,228,231,0.7);
-    box-shadow: var(--shadow-elev-2), inset 0 1px 0 rgba(255,255,255,0.6);
-  }
-  .dark .glass {
-    background: rgba(26,26,30,0.72);
-    border-color: rgba(46,46,50,0.7);
-    box-shadow: var(--shadow-elev-2), inset 0 1px 0 rgba(255,255,255,0.05);
-  }
+
+  /* primary glass — workspace panels, forms, side panels */
   .sheet {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--glass-1-bg);
+    backdrop-filter: blur(var(--glass-1-blur)) saturate(160%);
+    -webkit-backdrop-filter: blur(var(--glass-1-blur)) saturate(160%);
+    border: 1px solid var(--glass-1-border);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-elev-2);
+    box-shadow: var(--shadow-elev-2), inset 0 1px 0 var(--glass-1-hi);
   }
+
+  /* secondary glass — cards, list items, result rows */
   .sheet-soft {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--glass-2-bg);
+    backdrop-filter: blur(var(--glass-2-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--glass-2-blur)) saturate(150%);
+    border: 1px solid var(--glass-2-border);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-elev-1);
+    box-shadow: var(--shadow-elev-1), inset 0 1px 0 var(--glass-2-hi);
   }
+
+  /* floating glass — dialogs, popups, tab strip */
+  .glass {
+    background: var(--glass-3-bg);
+    backdrop-filter: blur(var(--glass-3-blur)) saturate(170%);
+    -webkit-backdrop-filter: blur(var(--glass-3-blur)) saturate(170%);
+    border: 1px solid var(--glass-3-border);
+    box-shadow: var(--shadow-elev-3), inset 0 1px 0 var(--glass-3-hi);
+  }
+
+  /* sticky header — same floating tier, but settles flat against the edge */
+  .glass-header {
+    background: var(--glass-header-bg);
+    backdrop-filter: blur(20px) saturate(170%);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    border-bottom: 1px solid var(--glass-header-border);
+    box-shadow: 0 1px 0 var(--glass-3-hi);
+  }
+
+  /* reading surface: more opaque than secondary UI so article text wins,
+     still translucent enough for the atmosphere to bleed through */
+  #reader-article {
+    background: var(--glass-reader-bg);
+    backdrop-filter: blur(var(--glass-reader-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--glass-reader-blur)) saturate(150%);
+    box-shadow: var(--shadow-elev-2), inset 0 1px 0 var(--glass-1-hi);
+  }
+
   @media (prefers-reduced-transparency: reduce) {
-    .glass { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--surface); }
+    .sheet,
+    .sheet-soft,
+    .glass,
+    .glass-header,
+    #reader-article {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background: var(--surface);
+      box-shadow: var(--shadow-elev-1);
+    }
   }
 }
 
@@ -237,4 +392,10 @@ mark.highlight.hl-enter {
     scroll-behavior: auto !important;
   }
   mark.highlight.hl-enter { animation: none !important; }
+  /* hold the atmosphere perfectly static */
+  body::before,
+  body::after {
+    animation: none !important;
+    transform: none !important;
+  }
 }

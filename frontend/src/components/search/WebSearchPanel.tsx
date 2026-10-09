@@ -60,7 +60,7 @@ export function WebSearchPanel({ projectId }: WebSearchPanelProps) {
       <form
         onSubmit={handleSubmit}
         aria-label="Search the web"
-        className="sheet-soft flex flex-col gap-4 p-4"
+        className="sheet flex flex-col gap-4 p-4"
         noValidate
       >
         <Input

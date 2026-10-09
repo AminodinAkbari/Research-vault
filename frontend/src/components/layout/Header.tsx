@@ -9,7 +9,7 @@ export function Header() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/70 bg-background/75 backdrop-blur-xl backdrop-saturate-150">
+    <header className="glass-header sticky top-0 z-50 w-full">
       <div className="app-wrap flex h-16 items-center justify-between">
         <Link
           href="/dashboard"

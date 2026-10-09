@@ -112,7 +112,7 @@ export default function ProjectWorkspacePage() {
       </header>
 
       {/* Search + export toolbar */}
-      <div className="sheet-soft flex flex-col gap-5 p-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="sheet flex flex-col gap-5 p-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 flex-1">
           <ProjectSearchBox
             projectId={project.id}

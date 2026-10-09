@@ -34,7 +34,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 app-wrap py-10 sm:py-12">
         {children}

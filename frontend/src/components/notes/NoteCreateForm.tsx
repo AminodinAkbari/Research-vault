@@ -76,7 +76,7 @@ export function NoteCreateForm({
     <form
       onSubmit={handleSubmit}
       aria-label="Create a new note"
-      className="flex flex-col gap-4 border border-border rounded-lg p-4"
+      className="sheet flex flex-col gap-4 p-4"
       noValidate
     >
       <Input

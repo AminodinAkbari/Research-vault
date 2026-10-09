@@ -74,7 +74,7 @@ export function TagsPanel({ projectId, onTagClick }: TagsPanelProps) {
       <form
         onSubmit={handleSubmit}
         aria-label="Create a new tag"
-        className="sheet-soft flex flex-col gap-4 p-4"
+        className="sheet flex flex-col gap-4 p-4"
         noValidate
       >
         <Input

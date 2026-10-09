@@ -21,12 +21,12 @@ const config: Config = {
     },
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        background: "rgb(var(--background-rgb) / <alpha-value>)",
+        foreground: "rgb(var(--foreground-rgb) / <alpha-value>)",
         surface: {
-          DEFAULT: "var(--surface)",
-          raised: "var(--surface-raised)",
-          muted: "var(--surface-muted)",
+          DEFAULT: "rgb(var(--surface-rgb) / <alpha-value>)",
+          raised: "rgb(var(--surface-raised-rgb) / <alpha-value>)",
+          muted: "rgb(var(--surface-muted-rgb) / <alpha-value>)",
         },
         accent: {
           DEFAULT: "rgb(var(--accent-rgb) / <alpha-value>)",
@@ -44,10 +44,10 @@ const config: Config = {
         },
         muted: {
           DEFAULT: "rgb(var(--muted-rgb) / <alpha-value>)",
-          foreground: "var(--muted-foreground)",
+          foreground: "rgb(var(--muted-foreground-rgb) / <alpha-value>)",
         },
-        border: "var(--border)",
-        input: "var(--input)",
+        border: "rgb(var(--border-rgb) / <alpha-value>)",
+        input: "rgb(var(--input-rgb) / <alpha-value>)",
         ring: "rgb(var(--accent-rgb) / <alpha-value>)",
       },
       fontFamily: {
