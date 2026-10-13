@@ -58,6 +58,7 @@ async def create_link(
     snippet: str = "",
     search_query: Optional[str] = None,
 ) -> SavedLink:
+
     link = SavedLink(
         project_id=project_id,
         url=url,
@@ -66,11 +67,17 @@ async def create_link(
         search_query=search_query,
         extraction_status=ExtractionStatus.pending,
     )
+
     db.add(link)
+
     await db.flush()
     await db.refresh(link)
-    extract_link_content.delay(str(link.id))
-    return await get_link(db, project_id=project_id, link_id=link.id)
+
+    return await get_link(
+        db,
+        project_id=project_id,
+        link_id=link.id,
+    )
 
 
 async def delete_link(

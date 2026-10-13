@@ -24,6 +24,7 @@ from app.services import highlight as highlight_service
 from app.services import summarisation as summarisation_service
 from app.services.searxng import search_searxng
 from app.services.ai import call_ai, AIError
+from app.tasks.extraction import extract_link_content
 
 router = APIRouter()
 
@@ -36,15 +37,16 @@ async def search(
     """Run an external web search using SearXNG."""
     return await search_searxng(payload.query)
 
-
 @router.post("/links", response_model=SavedLinkRead, status_code=status.HTTP_201_CREATED)
 async def create_link(
     payload: SavedLinkCreate,
     project: Project = Depends(get_current_project),
     db: AsyncSession = Depends(get_db),
 ) -> SavedLinkRead:
+
     """Save a new link to the current project."""
-    return await link_service.create_link(
+
+    link = await link_service.create_link(
         db,
         project_id=project.id,
         url=payload.url,
@@ -52,6 +54,12 @@ async def create_link(
         snippet=payload.snippet,
         search_query=payload.search_query,
     )
+
+    await db.commit()
+
+    extract_link_content.delay(str(link.id))
+
+    return link
     
 @router.post(
     "/link/{link_id}/re-extract",
