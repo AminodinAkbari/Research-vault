@@ -3,8 +3,9 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "motion/react";
-import { XIcon } from "@phosphor-icons/react";
+import { SparkleIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { HIGHLIGHT_COLOR_HEX, HIGHLIGHT_COLOR_NAMES } from "@/lib/constants";
 
@@ -24,6 +25,8 @@ export interface HighlightSavePayload {
 export interface HighlightPopupProps {
   selection: HighlightSelection;
   onSave: (payload: HighlightSavePayload) => Promise<void>;
+  /** Ask the AI to explain the current selection (ExplainThis feature). */
+  onExplain: () => void;
   onClose: () => void;
 }
 
@@ -32,6 +35,7 @@ const SAVE_ERROR = "Failed to save highlight. Please try again.";
 export function HighlightPopup({
   selection,
   onSave,
+  onExplain,
   onClose,
 }: HighlightPopupProps) {
   const popupRef = useRef<HTMLFormElement>(null);
@@ -83,6 +87,13 @@ export function HighlightPopup({
   const handleSwatch = (name: string) => {
     setColor(name);
     void submit(name);
+  };
+
+  // Explain starts the AI request upstream; the popup then hands over to the
+  // floating explanation card (the caller closes it).
+  const handleExplain = () => {
+    if (isSaving) return;
+    onExplain();
   };
 
   if (typeof document === "undefined") return null;
@@ -170,10 +181,27 @@ export function HighlightPopup({
             />
           ))}
         </div>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="flex-1 gap-1.5"
+          onClick={handleExplain}
+          disabled={isSaving}
+          leftIcon={
+            <Icon size={15} weight="bold" className="text-accent">
+              <SparkleIcon />
+            </Icon>
+          }
+        >
+          Explain
+        </Button>
         <Button
           type="submit"
           size="sm"
-          className="ml-auto"
           isLoading={isSaving}
         >
           Save

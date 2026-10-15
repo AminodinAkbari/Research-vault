@@ -12,6 +12,7 @@ import { NotFound } from "@/components/layout/NotFound";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { LinksPanel } from "@/components/links/LinksPanel";
 import { WebSearchPanel } from "@/components/search/WebSearchPanel";
+import { RoadmapPanel } from "@/components/roadmap/RoadmapPanel";
 import { ProjectSearchBox } from "@/components/search/ProjectSearchBox";
 import { TagFilterResults } from "@/components/tags/TagFilterResults";
 import { TagsPanel } from "@/components/tags/TagsPanel";
@@ -154,6 +155,9 @@ export default function ProjectWorkspacePage() {
         </div>
         <div id="websearch-panel" role="tabpanel" aria-labelledby="websearch-panel-tab" hidden={activeTab !== "websearch-panel"}>
           <WebSearchPanel projectId={project.id} />
+        </div>
+        <div id="roadmap-panel" role="tabpanel" aria-labelledby="roadmap-panel-tab" hidden={activeTab !== "roadmap-panel"}>
+          <RoadmapPanel projectId={project.id} defaultSubject={project.name} />
         </div>
         <div id="tags-panel" role="tabpanel" aria-labelledby="tags-panel-tab" hidden={activeTab !== "tags-panel"}>
           <TagsPanel projectId={project.id} onTagClick={handleTagClick} />

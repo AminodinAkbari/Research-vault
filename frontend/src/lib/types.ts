@@ -179,6 +179,49 @@ export const HighlightCreate = z.object({
 export type HighlightCreate = z.infer<typeof HighlightCreate>;
 
 // ============================================================================
+// Explain (AI explanation for selected text)
+// ============================================================================
+
+/** Request body of POST /projects/{project_id}/links/{link_id}/explain (ExplainRequest). */
+export const ExplainRequest = z.object({
+  selected_text: z.string().min(1).max(5000),
+  start_offset: z.number().int().min(0),
+  end_offset: z.number().int().min(1),
+});
+export type ExplainRequest = z.infer<typeof ExplainRequest>;
+
+/**
+ * Response of POST .../explain: the endpoint stores the AI explanation as the
+ * annotation of a new yellow highlight, then returns the link's full
+ * highlight list (HighlightRead[], ordered by created_at ascending).
+ */
+export const ExplainResponse = z.array(HighlightRead);
+export type ExplainResponse = z.infer<typeof ExplainResponse>;
+
+// ============================================================================
+// Roadmap (AI-generated research roadmap)
+// ============================================================================
+
+/** Request body of POST /api/v1/roadmap (RoadmapRequest). */
+export const RoadmapRequest = z.object({
+  subject: z.string().min(1).max(200),
+});
+export type RoadmapRequest = z.infer<typeof RoadmapRequest>;
+
+/** One step of a generated research roadmap (RoadmapStep). */
+export const RoadmapStep = z.object({
+  step: z.string(),
+  keywords: z.array(z.string()).default([]),
+});
+export type RoadmapStep = z.infer<typeof RoadmapStep>;
+
+/** Response of POST /api/v1/roadmap (RoadmapResponse). */
+export const RoadmapResponse = z.object({
+  roadmap: z.array(RoadmapStep),
+});
+export type RoadmapResponse = z.infer<typeof RoadmapResponse>;
+
+// ============================================================================
 // Search Results
 // ============================================================================
 

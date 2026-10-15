@@ -2,9 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { SparkleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Icon } from "@/components/ui/Icon";
+import { ExplainAnchor } from "@/components/reader/ExplainCard";
 import { highlightColorLabel, resolveHighlightColor } from "@/lib/constants";
 import { ApiError, HighlightRead } from "@/lib/types";
 
@@ -14,6 +17,8 @@ export interface HighlightsPanelProps {
   isError?: boolean;
   deleteHighlight: (highlightId: string) => Promise<void>;
   isDeleting?: boolean;
+  /** Explain this highlight's text with the AI (anchor = the clicked button). */
+  onExplain: (highlight: HighlightRead, anchor: ExplainAnchor) => void;
 }
 
 export function HighlightsPanel({
@@ -22,6 +27,7 @@ export function HighlightsPanel({
   isError = false,
   deleteHighlight,
   isDeleting = false,
+  onExplain,
 }: HighlightsPanelProps) {
   const [pendingDelete, setPendingDelete] = useState<HighlightRead | null>(
     null
@@ -191,14 +197,16 @@ export function HighlightsPanel({
                     <span className="font-mono text-xs text-muted-foreground">
                       {highlightColorLabel(highlight.color)}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-auto text-muted-foreground hover:text-danger"
-                      onClick={() => setPendingDelete(highlight)}
-                    >
-                      Remove
-                    </Button>
+                    <div className="ml-auto flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-danger"
+                        onClick={() => setPendingDelete(highlight)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   </div>
                 </motion.li>
               ))}

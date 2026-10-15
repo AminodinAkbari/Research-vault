@@ -2,12 +2,18 @@
  * Tab activation utilities for URL hash and query parameter handling
  */
 
-export type TabId = "notes-panel" | "links-panel" | "websearch-panel" | "tags-panel";
+export type TabId =
+  | "notes-panel"
+  | "links-panel"
+  | "websearch-panel"
+  | "roadmap-panel"
+  | "tags-panel";
 
 export const TABS: { id: TabId; label: string; hash: string }[] = [
   { id: "notes-panel", label: "Notes", hash: "#notes-panel" },
   { id: "links-panel", label: "Links", hash: "#links-panel" },
   { id: "websearch-panel", label: "Web Search", hash: "#websearch-panel" },
+  { id: "roadmap-panel", label: "Roadmap", hash: "#roadmap-panel" },
   { id: "tags-panel", label: "Tags", hash: "#tags-panel" },
 ];
 

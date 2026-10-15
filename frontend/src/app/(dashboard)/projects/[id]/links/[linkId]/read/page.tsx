@@ -6,20 +6,49 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import { ApiError, SavedLinkRead } from "@/lib/types";
+import { ApiError, ExplainRequest, SavedLinkRead } from "@/lib/types";
 import { computeGlobalOffset } from "@/lib/highlightMarks";
 import { resolveHighlightColor } from "@/lib/constants";
 import { useProjects } from "@/hooks/useProjects";
 import { useHighlights } from "@/hooks/useHighlights";
 import { useHighlightMarks } from "@/hooks/useHighlightMarks";
+import { pickExplainedHighlight, useExplainText } from "@/hooks/useLinks";
+import { useNotes } from "@/hooks/useNotes";
+import { useToast } from "@/components/providers/ToastProvider";
 import {
   HighlightPopup,
   HighlightSavePayload,
   HighlightSelection,
 } from "@/components/reader/HighlightPopup";
 import { HighlightsPanel } from "@/components/reader/HighlightsPanel";
+import { ExplainAnchor, ExplainCard } from "@/components/reader/ExplainCard";
 import { NotFound } from "@/components/layout/NotFound";
 import { Button } from "@/components/ui/Button";
+
+interface ExplainSession {
+  request: ExplainRequest;
+  anchor: ExplainAnchor;
+}
+
+function explainErrorMessage(err: unknown): string {
+  if (err instanceof ApiError && typeof err.body.detail === "string") {
+    return err.body.detail;
+  }
+  return "Couldn't generate an explanation. Please try again.";
+}
+
+function noteErrorMessage(err: unknown): string {
+  if (err instanceof ApiError && typeof err.body.detail === "string") {
+    return err.body.detail;
+  }
+  return "Failed to save the note. Please try again.";
+}
+
+function noteTitleFor(quote: string): string {
+  const flat = quote.replace(/\s+/g, " ").trim();
+  const excerpt = flat.length > 80 ? `${flat.slice(0, 80).trimEnd()}…` : flat;
+  return `Explain: ${excerpt}`;
+}
 
 export default function LinkReaderPage() {
   const params = useParams();
@@ -46,6 +75,16 @@ export default function LinkReaderPage() {
     isDeleting,
   } = useHighlights(projectId, linkId);
 
+  const {
+    explainText,
+    isExplaining,
+    explainResult,
+    explainError,
+    resetExplain,
+  } = useExplainText(projectId, linkId);
+  const { createNote, isCreating: isSavingNote } = useNotes(projectId);
+  const { success: successToast, error: errorToast } = useToast();
+
   const [articleEl, setArticleEl] = useState<HTMLElement | null>(null);
   const setArticleRef = useCallback(
     (node: HTMLElement | null) => setArticleEl(node),
@@ -53,7 +92,20 @@ export default function LinkReaderPage() {
   );
   const [selection, setSelection] = useState<HighlightSelection | null>(null);
 
+  // ExplainThis: the floating card's session (request + where it anchors).
+  const [explain, setExplain] = useState<ExplainSession | null>(null);
+  const [noteSaved, setNoteSaved] = useState(false);
+
   useHighlightMarks(articleEl, highlights);
+
+  // A fresh selection always wins over an open explanation card.
+  useEffect(() => {
+    if (selection && explain) {
+      setExplain(null);
+      setNoteSaved(false);
+      resetExplain();
+    }
+  }, [selection, explain, resetExplain]);
 
   // Visual only: when the user saves a highlight, paint the (temp or rebuilt)
   // <mark> in with a wipe + glow. The marks engine rebuilds marks on list
@@ -183,6 +235,60 @@ export default function LinkReaderPage() {
     setSelection(null);
   };
 
+  // ExplainThis: open the floating card and start the AI request. The live
+  // selection is dropped so the selection handlers can't reopen the popup
+  // over the card; reading position is untouched (portal, no scrolling).
+  const startExplain = (request: ExplainRequest, anchor: ExplainAnchor) => {
+    setNoteSaved(false);
+    setExplain({ request, anchor });
+    setSelection(null);
+    window.getSelection()?.removeAllRanges();
+    void explainText(request).catch((err: unknown) => {
+      errorToast(explainErrorMessage(err));
+    });
+  };
+
+  const handleExplainSelection = () => {
+    if (!selection) return;
+    startExplain(
+      {
+        selected_text: selection.text,
+        start_offset: selection.startOffset,
+        end_offset: selection.endOffset,
+      },
+      selection.rect
+    );
+  };
+
+  const closeExplain = () => {
+    setExplain(null);
+    setNoteSaved(false);
+    resetExplain();
+  };
+
+  // ExplainThis → Save as Note: quote + explanation as a project note linked
+  // back to this source link.
+  const handleSaveNote = async () => {
+    if (!explain || noteSaved || isSavingNote) return;
+    const explanation = pickExplainedHighlight(
+      explainResult ?? [],
+      explain.request
+    )?.annotation;
+    if (!explanation) return;
+
+    try {
+      await createNote({
+        title: noteTitleFor(explain.request.selected_text),
+        content: `> ${explain.request.selected_text}\n\n${explanation}`,
+        source_link_id: linkId,
+      });
+      setNoteSaved(true);
+      successToast("Explanation saved as a note.");
+    } catch (err) {
+      errorToast(noteErrorMessage(err));
+    }
+  };
+
   if (projectsLoading || (linkQuery.isLoading && !link)) {
     return (
       <div role="status" aria-busy="true" className="flex flex-col items-center justify-center gap-4 py-24 text-muted-foreground">
@@ -250,7 +356,7 @@ export default function LinkReaderPage() {
     link.extraction_status === "completed" && !!link.extracted_content;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href={`/projects/${projectId}`}
@@ -308,6 +414,16 @@ export default function LinkReaderPage() {
             isError={highlightsError}
             deleteHighlight={deleteHighlight}
             isDeleting={isDeleting}
+            onExplain={(highlight, anchor) =>
+              startExplain(
+                {
+                  selected_text: highlight.selected_text,
+                  start_offset: highlight.start_offset,
+                  end_offset: highlight.end_offset,
+                },
+                anchor
+              )
+            }
           />
         </div>
       </div>
@@ -316,7 +432,28 @@ export default function LinkReaderPage() {
         <HighlightPopup
           selection={selection}
           onSave={handleSave}
+          onExplain={handleExplainSelection}
           onClose={() => setSelection(null)}
+        />
+      )}
+
+      {explain && (
+        <ExplainCard
+          quote={explain.request.selected_text}
+          anchor={explain.anchor}
+          isPending={isExplaining}
+          explanation={
+            explainResult
+              ? pickExplainedHighlight(explainResult, explain.request)
+                  ?.annotation ?? "Could not generate explanation."
+              : null
+          }
+          error={explainError ? explainErrorMessage(explainError) : null}
+          isSavingNote={isSavingNote}
+          noteSaved={noteSaved}
+          onRetry={() => startExplain(explain.request, explain.anchor)}
+          onSaveNote={handleSaveNote}
+          onClose={closeExplain}
         />
       )}
     </div>

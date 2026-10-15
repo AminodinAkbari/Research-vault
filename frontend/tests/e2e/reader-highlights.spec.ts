@@ -359,4 +359,187 @@ test.describe("Reader and highlights (US5)", () => {
     );
     await expect(page.locator("#note-source-link")).toHaveValue(linkId);
   });
+
+  test("'Explain' shows an inline AI card without moving the reading position, then saves it as a note", async ({
+    page,
+  }) => {
+    const projectId = await createProject(page, "Reader Explain Project");
+    const linkId = await seedCompletedLink(
+      page,
+      projectId,
+      "Reader Fixture Article",
+      "https://example.com/reader-fixture"
+    );
+
+    const EXPLANATION =
+      "Distributed systems split computation across independent machines.";
+
+    // The explain endpoint hits a real AI provider, so the response is stubbed
+    // with the exact list-of-HighlightRead contract from tests/test_explain.py.
+    const explainRequests: any[] = [];
+    await page.route(
+      `**/api/v1/projects/*/links/${linkId}/explain`,
+      async (route) => {
+        expect(route.request().method()).toBe("POST");
+        const body = route.request().postDataJSON();
+        explainRequests.push(body);
+        // Hold the response so the loading skeleton is observable
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          json: [
+            {
+              id: "99999999-9999-4999-8999-999999999999",
+              link_id: linkId,
+              selected_text: body.selected_text,
+              annotation: EXPLANATION,
+              start_offset: body.start_offset,
+              end_offset: body.end_offset,
+              color: "yellow",
+              created_at: new Date().toISOString(),
+            },
+          ],
+        });
+      }
+    );
+
+    let postedNote: any = null;
+    await page.route("**/api/v1/projects/*/notes", async (route) => {
+      if (route.request().method() !== "POST") {
+        await route.continue();
+        return;
+      }
+      postedNote = route.request().postDataJSON();
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        json: {
+          id: "88888888-8888-4888-8888-888888888888",
+          project_id: projectId,
+          title: postedNote.title,
+          content: postedNote.content ?? "",
+          source_link_id: postedNote.source_link_id ?? null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          tags: [],
+        },
+      });
+    });
+
+    await openReader(page, projectId, linkId);
+    const scrollYBefore = await page.evaluate(() => window.scrollY);
+
+    await selectParagraph(page);
+    await expect(popup(page)).toBeVisible();
+    await popup(page).getByRole("button", { name: "Explain" }).click();
+
+    // The popup hands over to the floating card — no navigation, no scroll
+    await expect(popup(page)).toHaveCount(0);
+    const card = page.locator("#explain-card");
+    await expect(card).toBeVisible();
+    await expect(card).toContainText(
+      "Extracted paragraph one about distributed systems."
+    );
+    await expect(card.getByRole("status")).toBeVisible(); // skeleton while pending
+    await expect(card).toContainText(EXPLANATION, { timeout: 5000 });
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrollYBefore);
+    expect(explainRequests[0]).toMatchObject({
+      selected_text: "Extracted paragraph one about distributed systems.",
+      start_offset: expect.any(Number),
+      end_offset: expect.any(Number),
+    });
+
+    await card.getByRole("button", { name: "Save as Note" }).click();
+    await expect(
+      page.getByText("Explanation saved as a note.")
+    ).toBeVisible();
+    await expect(card.getByRole("button", { name: "Saved" })).toBeDisabled();
+    expect(postedNote).toMatchObject({ source_link_id: linkId });
+    expect(postedNote.content).toContain(
+      "Extracted paragraph one about distributed systems."
+    );
+    expect(postedNote.content).toContain(EXPLANATION);
+
+    await card.getByRole("button", { name: "Close explanation" }).click();
+    await expect(card).toHaveCount(0);
+  });
+
+  test("Explain from a highlight shows a toast and inline Retry when the AI fails", async ({
+    page,
+  }) => {
+    const projectId = await createProject(page, "Reader Explain Failure Project");
+    const linkId = await seedCompletedLink(
+      page,
+      projectId,
+      "Reader Fixture Article",
+      "https://example.com/reader-fixture"
+    );
+    await openReader(page, projectId, linkId);
+
+    // Seed a highlight so the panel's Explain action has a target
+    await selectParagraph(page);
+    await popup(page).getByRole("button", { name: "Save" }).click();
+    await expect(
+      page.locator("#reader-article mark.highlight")
+    ).toHaveCount(1);
+
+    let attempts = 0;
+    await page.route(
+      `**/api/v1/projects/*/links/${linkId}/explain`,
+      async (route) => {
+        attempts += 1;
+        if (attempts === 1) {
+          await route.fulfill({
+            status: 502,
+            contentType: "application/json",
+            json: { detail: "AI explanation service unavailable" },
+          });
+          return;
+        }
+        const body = route.request().postDataJSON();
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          json: [
+            {
+              id: "77777777-7777-4777-8777-777777777777",
+              link_id: linkId,
+              selected_text: body.selected_text,
+              annotation: "AI explains the highlighted claim.",
+              start_offset: body.start_offset,
+              end_offset: body.end_offset,
+              color: "yellow",
+              created_at: new Date().toISOString(),
+            },
+          ],
+        });
+      }
+    );
+
+    await page
+      .locator("#highlights-list")
+      .getByRole("button", { name: "Explain" })
+      .click();
+
+    const card = page.locator("#explain-card");
+    await expect(card).toBeVisible();
+    await expect(card.getByRole("alert")).toContainText(
+      "AI explanation service unavailable"
+    );
+    // Failure also surfaces as a transient toast
+    await expect(
+      page.locator('div[aria-live="polite"].fixed')
+    ).toContainText("AI explanation service unavailable");
+    await expect(card.getByRole("button", { name: "Retry" })).toBeVisible();
+
+    await card.getByRole("button", { name: "Retry" }).click();
+    await expect(card).toContainText("AI explains the highlighted claim.", {
+      timeout: 5000,
+    });
+    await expect(
+      card.getByRole("button", { name: "Save as Note" })
+    ).toBeVisible();
+    expect(attempts).toBe(2);
+  });
 });

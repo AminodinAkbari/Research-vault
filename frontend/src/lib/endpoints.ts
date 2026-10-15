@@ -53,6 +53,13 @@ export const endpoints = {
     `/api/v1/projects/${projectId}/links/${linkId}/highlights`,
   highlight: (projectId: string, linkId: string, highlightId: string) =>
     `/api/v1/projects/${projectId}/links/${linkId}/highlights/${highlightId}`,
+
+  // Explain — AI explanation for selected text (app/api/v1/links.py)
+  linkExplain: (projectId: string, linkId: string) =>
+    `/api/v1/projects/${projectId}/links/${linkId}/explain`,
+
+  // Roadmap — AI-generated research roadmap (app/api/v1/roadmap.py)
+  roadmap: "/api/v1/roadmap",
 } as const;
 
 // ============================================================================
