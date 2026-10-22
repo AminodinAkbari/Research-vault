@@ -210,19 +210,11 @@ export default function LinkReaderPage() {
       color: payload.color,
     });
 
-    // Instant visual feedback while the list round-trips (FR-024)
-    try {
-      const contents = selection.range.extractContents();
-      const tempMark = document.createElement("mark");
-      tempMark.className = "highlight temp-highlight hl-enter";
-      const hex = resolveHighlightColor(payload.color);
-      tempMark.style.backgroundColor = hex;
-      tempMark.style.setProperty("--hl", hex);
-      tempMark.appendChild(contents);
-      selection.range.insertNode(tempMark);
-    } catch {
-      // The marks engine repaints from the saved list regardless
-    }
+    // The marks engine (useHighlightMarks → applyMarks) repaints every saved
+    // highlight from the server list once the create mutation invalidates the
+    // highlights query. Do not mutate the article DOM here with the stale
+    // selection.range captured at mouseup time — it races with clearAllMarks()
+    // and can wipe out existing highlights while the popup is open.
 
     if (saved?.id) {
       setLastSaved({
