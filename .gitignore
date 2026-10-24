@@ -8,3 +8,4 @@ AGENTS.md
 .claude/
 .specify/feature.json
 .specify/extensions/*/local-config.yml
+.aider*
