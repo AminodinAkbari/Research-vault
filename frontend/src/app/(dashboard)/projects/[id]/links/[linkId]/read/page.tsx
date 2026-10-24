@@ -21,6 +21,7 @@ import {
   HighlightSelection,
 } from "@/components/reader/HighlightPopup";
 import { HighlightsPanel } from "@/components/reader/HighlightsPanel";
+import { HighlightTooltip } from "@/components/reader/HighlightTooltip";
 import { ExplainAnchor, ExplainCard } from "@/components/reader/ExplainCard";
 import { NotFound } from "@/components/layout/NotFound";
 import { Button } from "@/components/ui/Button";
@@ -397,6 +398,7 @@ export default function LinkReaderPage() {
               <p className="m-0">Content not yet extracted.</p>
             </div>
           )}
+          {articleEl && <HighlightTooltip article={articleEl} highlights={highlights} />}
         </div>
 
         <div className="mx-auto w-full max-w-[760px] max-h-[60vh] xl:max-h-[calc(100vh-7rem)] xl:max-w-none xl:sticky xl:top-24">
