@@ -132,7 +132,7 @@ This page shows the full extracted article text and supports highlighting.
 - **Back link**: “← Back to [project name]” → `/projects/{project_id}`.
 - **“+ Add note about this” button**: Takes the user back to the project page with `?source_link_id={link_id}#notes-panel`. The Notes tab opens and the source link dropdown is pre‑selected.
 - **Article title** & **source URL** (opens in new tab).
-- **Article content**: Displayed as plain text inside `#reader-article`. The `extracted_content` is rendered with `|safe` (no HTML escaping, but it’s just plain text). If extraction status is not “completed”, show “Content not yet extracted.” instead.
+- **Article content**: Displayed as sanitized HTML inside `#reader-article`, preserving headings, paragraphs, lists and inline text styles. The `extracted_content` is rendered with `|safe`; it is sanitized at extraction time (`app/services/content.py`), so titles and formatting survive. If extraction status is not “completed”, show “Content not yet extracted.” instead.
 
 #### 3.5.1 Highlight System
 

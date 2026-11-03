@@ -526,6 +526,43 @@ Save a new link to the project. Triggers async content extraction.
 
 ---
 
+### `POST /api/v1/projects/{project_id}/links/manual-extract`
+
+Manually extract a URL the user pasted, without going through SearXNG search.
+Creates a saved link and triggers the same async extraction task used by the
+save-from-search flow.
+
+**Request Body:**
+
+```json
+{
+  "url": "https://arxiv.org/abs/1706.03762"
+}
+```
+
+**Field Notes:**
+
+- `url` — Required, must be a valid HTTP(S) URL
+
+The link `title` is derived from the URL host and path (extraction writes
+content only), and `snippet` defaults to empty.
+
+**Response (201 Created):** same shape as `POST /links` — the new link with
+`extraction_status` set to `pending`.
+
+**Special Behaviour:**
+
+- Triggers the same **async content extraction** background task as `POST /links`
+- `extraction_status` will be `pending` → `completed` | `failed`
+
+**Error Codes:**
+
+- `401 Unauthorized`
+- `403 Forbidden` — Not project owner
+- `422 Unprocessable Entity` — Missing or invalid `url`
+
+---
+
 ### `GET /api/v1/projects/{project_id}/links`
 
 List all saved links in the project.
