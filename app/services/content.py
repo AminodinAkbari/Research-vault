@@ -100,32 +100,6 @@ _cleaner = Cleaner(
 )
 
 
-def sanitize_article_html(raw_html: str) -> str | None:
-    """Return a safe subset of an article's HTML, preserving structure.
-
-    Keeps semantic markup (headings, paragraphs, lists, emphasis, links,
-    images, tables) so the reader view can render titles and text styles,
-    while stripping scripts, event handlers, inline styles and other
-    attributes that could be abused when the markup is re-rendered with
-    ``|safe`` / ``dangerouslySetInnerHTML``. Returns ``None`` when the input
-    carries no visible text.
-    """
-    if not raw_html or not raw_html.strip():
-        return None
-
-    try:
-        doc = fromstring(raw_html)
-    except Exception:
-        return None
-
-    _cleaner(doc)
-    if not doc.text_content().strip():
-        return None
-
-    html = tostring(doc, encoding="unicode").strip()
-    return html or None
-
-
 def html_to_text(html: str | None) -> str:
     """Flatten sanitized article HTML to plain text for AI, search and export.
 
