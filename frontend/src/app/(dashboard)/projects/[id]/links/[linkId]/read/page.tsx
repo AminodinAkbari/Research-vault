@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -98,6 +99,60 @@ export default function LinkReaderPage() {
   const [noteSaved, setNoteSaved] = useState(false);
 
   useHighlightMarks(articleEl, highlights);
+
+  // Memoize the parsed Markdown so selecting text or opening the Explain card
+  // does not re-render the article DOM and wipe out <mark> highlights.
+  const renderedArticle = useMemo(() => {
+    if (!link?.extracted_content) return null;
+    return (
+      <ReactMarkdown
+        components={{
+          h1: ({ children }) => (
+            <h1 className="mt-8 mb-4 font-reading text-2xl sm:text-3xl font-semibold leading-tight text-foreground">
+              {children}
+            </h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="mt-7 mb-3 font-reading text-xl sm:text-2xl font-semibold leading-snug text-foreground">
+              {children}
+            </h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="mt-6 mb-2 font-reading text-lg font-medium text-foreground">
+              {children}
+            </h3>
+          ),
+          p: ({ children }) => (
+            <p className="mb-4 text-base leading-relaxed text-foreground/90">
+              {children}
+            </p>
+          ),
+          ul: ({ children }) => (
+            <ul className="mb-4 list-disc space-y-1.5 pl-6 text-base leading-relaxed">
+              {children}
+            </ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="mb-4 list-decimal space-y-1.5 pl-6 text-base leading-relaxed">
+              {children}
+            </ol>
+          ),
+          blockquote: ({ children }) => (
+            <blockquote className="my-4 border-l-2 border-accent pl-4 italic text-muted-foreground">
+              {children}
+            </blockquote>
+          ),
+          pre: ({ children }) => (
+            <pre className="my-4 overflow-x-auto rounded-md bg-muted p-4 font-mono text-xs leading-relaxed">
+              {children}
+            </pre>
+          ),
+        }}
+      >
+        {link.extracted_content}
+      </ReactMarkdown>
+    );
+  }, [link?.extracted_content]);
 
   // A fresh selection always wins over an open explanation card.
   useEffect(() => {
@@ -390,9 +445,10 @@ export default function LinkReaderPage() {
               role="region"
               aria-label="Article content"
               tabIndex={0}
-              className="sheet px-6 py-8 sm:px-10 sm:py-12 scroll-mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
-              dangerouslySetInnerHTML={{ __html: link.extracted_content ?? "" }}
-            />
+              className="sheet break-words px-6 py-8 font-reading text-base sm:px-10 sm:py-12 scroll-mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+            >
+              {renderedArticle}
+            </div>
           ) : (
             <div className="sheet px-6 py-10 sm:px-10 text-muted-foreground">
               <p className="m-0">Content not yet extracted.</p>
