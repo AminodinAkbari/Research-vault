@@ -21,9 +21,7 @@
   </p>
 
   {% if link.extraction_status.value == "completed" and link.extracted_content %}
-  <div id="reader-article" class="reader-article">
-    {{ link.extracted_content | safe }}
-  </div>
+  <pre id="reader-article" class="reader-article" style="white-space: pre-wrap; word-break: break-word">{{ link.extracted_content }}</pre>
   {% else %}
   <p class="muted">Content not yet extracted.</p>
   {% endif %}

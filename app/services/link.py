@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from typing import Optional
+from urllib.parse import urlsplit
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -77,6 +78,34 @@ async def create_link(
         db,
         project_id=project_id,
         link_id=link.id,
+    )
+
+
+def _title_from_url(url: str) -> str:
+    """Derive a placeholder title from a pasted URL.
+
+    Manually pasted links have no SearXNG result title to fall back on, and the
+    extraction task only writes content, so the host + path stand in for it.
+    """
+    parts = urlsplit(url)
+    host = parts.netloc or parts.path
+    path = parts.path.rstrip("/")
+    title = f"{host}{path}" if parts.netloc and path else host
+    return (title or url)[:512]
+
+
+async def create_link_from_url(
+    db: AsyncSession,
+    *,
+    project_id: uuid.UUID,
+    url: str,
+) -> SavedLink:
+    """Create a saved link for a manually pasted URL, ready for extraction."""
+    return await create_link(
+        db,
+        project_id=project_id,
+        url=url,
+        title=_title_from_url(url),
     )
 
 

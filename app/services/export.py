@@ -12,6 +12,7 @@ from app.models.highlight import Highlight
 from app.models.project import Project
 from app.services import link as link_service
 from app.services import note as note_service
+from app.services.content import html_to_text
 
 
 async def _highlights_by_link_id(
@@ -105,7 +106,12 @@ async def build_project_markdown(session: AsyncSession, *, project: Project) -> 
             out += ["**Tags:** " + ", ".join(f"`{t.name}`" for t in link.tags), ""]
 
         if link.extraction_status == "completed" and link.extracted_content:
-            out += ["**Extracted content:**", "", _blockquote(link.extracted_content), ""]
+            out += [
+                "**Extracted content:**",
+                "",
+                _blockquote(html_to_text(link.extracted_content)),
+                "",
+            ]
         elif link.extraction_status == "pending":
             out += ["_Content extraction pending._", ""]
         elif link.extraction_status == "failed":

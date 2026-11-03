@@ -227,37 +227,58 @@ one shared `_resolve_user_from_token()` helper in
 `app/core/dependencies.py`, so the actual token-validation logic is not
 duplicated — only the *place the token is read from* differs.
 
-### Why extracted content is stored as plain text — and a correction on rendering
-`app/tasks/extraction.py` runs `readability-lxml` to isolate the article's
-main HTML, then immediately strips it down with
-`fromstring(raw_html).text_content()` before it's ever written to the
-database. **The stored `extracted_content` column is plain text, not HTML.**
+### Why extracted content is stored as structured Markdown
 
-The reasoning: the source of that content is an arbitrary, untrusted
-third-party web page. Storing raw (or even "sanitized") HTML from the open
-web and re-rendering it inside the app's own pages is a much bigger attack
-surface (stored XSS via a malicious saved article) for very little payoff in
-a plain-text reading experience. Plain text also keeps full-text search
-simpler (no tag-stripping needed at query time) and keeps the reader view
-fast and predictable.
+`app/tasks/extraction.py` uses `trafilatura` to isolate the article's main body
+from boilerplate (navigation, ads, footers, scripts) and converts it directly
+into structured Markdown (`output_format="markdown"`, `include_formatting=True`)
+before writing it to the database. It also extracts page metadata via
+`trafilatura.extract_metadata()` to automatically populate `SavedLink.title`
+when a link is saved manually without a search-result title. **The stored
+`extracted_content` column is clean, structured Markdown — neither flat plain
+text nor raw/sanitized HTML.**
 
-One correction versus how this is sometimes phrased: the reader-mode and
-"view content" templates render `extracted_content` through Jinja's **default
-auto-escaping** (`{{ link.extracted_content }}` inside a `<div>`/`<pre>`),
-**not** with the `|safe` filter. That's intentional and consistent with the
-"plain text, not HTML" decision above — using `|safe` would only make sense
-if the field actually contained trusted markup, which it deliberately does
-not. If a future version wants basic formatting (paragraphs, headings) in
-the reader view, the right fix is to store a small amount of *sanitized*
-HTML (e.g. via `bleach`) at extraction time, not to mark the current
-plain-text field as safe.
+Earlier iterations either flattened the article into a single plain-text blob
+(which destroyed headings, paragraph breaks, lists, and blockquotes) or saved
+raw response text. Storing structured Markdown solves both problems while
+avoiding the security and rendering pitfalls of stored HTML:
+
+1. **Zero stored-XSS surface without HTML allow-list maintenance:** In the
+   Next.js reader (`page.tsx`), `extracted_content` is rendered through
+   `react-markdown`, which builds React elements directly from the Markdown AST
+   and escapes raw HTML by default instead of relying on
+   `dangerouslySetInnerHTML` or Jinja `|safe`.
+2. **Preserved document hierarchy:** Headings (`#`, `##`, `###`), paragraphs,
+   ordered/unordered lists, blockquotes, and code blocks are preserved in
+   PostgreSQL and mapped to styled semantic typography in the reader view.
+3. **Clean input for downstream consumers:** Features that operate on text —
+   such as AI explanations (`useExplainText`), note generation, and full-text
+   search — can consume `extracted_content` directly without stripping noisy
+   HTML tags or indexing markup attributes.
 
 ### Why highlight offsets are integer character positions
+
+`Highlight.start_offset` and `Highlight.end_offset` are plain integers over the
+rendered text stream of `#reader-article` (calculated via `computeGlobalOffset`
+and painted via `useHighlightMarks`).
+
+To keep DOM character offsets deterministic across multiple block elements
+(`<p>`, `<h2>`, `<ul>`, `<blockquote>`), the `ReactMarkdown` tree in `page.tsx`
+is wrapped in `useMemo` keyed solely on `link.extracted_content`. This ensures
+that interactive UI state updates (selecting text, opening the highlight popup,
+or viewing an AI explanation card) do not re-render the article DOM or wipe out
+the `<mark>` elements injected by `useHighlightMarks`. Storing integer offsets
+over the rendered text stream keeps the database schema simple, avoids fragile
+XPath/DOM-node selectors, and allows highlights to span cleanly across inline
+formatting.
+
+### Why highlight offsets are integer character positions
+
 `Highlight.start_offset` / `Highlight.end_offset` are plain integers over
-the character stream of `extracted_content`. This is the simplest possible
-representation: it doesn't depend on DOM structure, survives the content
-being re-rendered differently later, and is trivial to store/index — no need
-for a DOM-path-based anchoring scheme.
+the character stream of `extracted_content`'s text content. This is the
+simplest possible representation: it doesn't depend on DOM structure,
+survives the content being re-rendered differently later, and is trivial to
+store/index — no need for a DOM-path-based anchoring scheme.
 
 **Current implementation status, stated plainly:** the reader page's
 selection-to-highlight flow (`links/read.html`) currently sends
@@ -568,8 +589,7 @@ produce output (Pydantic-serialized JSON vs a rendered template).
 
 ## 8. Background Tasks
 
-The only background task today is `extract_link_content` (`app/tasks/
-extraction.py`), registered on the shared `celery_app`
+The only background task today is `extract_link_content` (`app/tasks/ extraction.py`), registered on the shared `celery_app`
 (`app/tasks/celery_app.py`, broker = Redis).
 
 **Dispatch points:**
@@ -593,8 +613,7 @@ extraction.py`), registered on the shared `celery_app`
 4. Runs `readability.Document(...).summary()` to isolate the article HTML,
    then `lxml.html.fromstring(...).text_content()` to reduce it to plain
    text (see §4 on why plain text, not HTML, is stored).
-5. On success: sets `extracted_content` and `extraction_status =
-   completed`. On *any* exception (network error, HTTP error status,
+5. On success: sets `extracted_content` and `extraction_status = completed`. On *any* exception (network error, HTTP error status,
    parsing failure): sets `extraction_status = failed` and logs the
    exception — the task always resolves to a terminal status, so a link
    never gets stuck showing "pending" forever because of a page that timed
