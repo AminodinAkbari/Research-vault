@@ -20,6 +20,8 @@ export interface UseLinksResult {
   error: unknown;
   createLink: (data: SavedLinkCreate) => Promise<SavedLinkRead>;
   isCreating: boolean;
+  manualExtract: (url: string) => Promise<SavedLinkRead>;
+  isExtracting: boolean;
   deleteLink: (linkId: string) => Promise<void>;
   isDeleting: boolean;
 }
@@ -45,6 +47,15 @@ export function useLinks(projectId: string): UseLinksResult {
     onSuccess: invalidate,
   });
 
+  const manualExtractMutation = useMutation({
+    mutationFn: (url: string) =>
+      apiFetch(endpoints.linksManualExtract(projectId), SavedLinkRead, {
+        method: "POST",
+        body: JSON.stringify({ url }),
+      }),
+    onSuccess: invalidate,
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (linkId: string) =>
       apiFetch(endpoints.link(projectId, linkId), NoContent, {
@@ -60,6 +71,8 @@ export function useLinks(projectId: string): UseLinksResult {
     error: listQuery.error,
     createLink: createMutation.mutateAsync,
     isCreating: createMutation.isPending,
+    manualExtract: manualExtractMutation.mutateAsync,
+    isExtracting: manualExtractMutation.isPending,
     deleteLink: (linkId) => deleteMutation.mutateAsync(linkId),
     isDeleting: deleteMutation.isPending,
   };
