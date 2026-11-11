@@ -2,7 +2,9 @@ version: "3.9"
 
 services:
   app:
-    build: .
+    image: research-vault:latest
+    build:
+      context: .
     ports:
       - "8000:8000"
     env_file:
@@ -71,7 +73,7 @@ services:
     restart: unless-stopped
 
   celery_worker:
-    build: .
+    image: research-vault:latest 
     command: celery -A app.tasks.celery_app worker --loglevel=info
     env_file:
       - .env
@@ -81,8 +83,8 @@ services:
       # - HTTPS_PROXY=socks5h://host.docker.internal:2080
       # - ALL_PROXY=socks5h://host.docker.internal:2080
       # - NO_PROXY=localhost,127.0.0.1,db,redis,searxng
-    extra_hosts:
-      - "host.docker.internal:host-gateway"  # Required for Linux
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"  # Required for Linux
     depends_on:
       db:
         condition: service_healthy
