@@ -5,6 +5,7 @@
 /* ============================================================
    TOKENS — light: warm editorial research workspace
    ============================================================ */
+html { font-size: 130%; }
 :root {
   color-scheme: light;
 
