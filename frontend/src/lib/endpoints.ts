@@ -26,6 +26,8 @@ export const endpoints = {
     `/api/v1/projects/${projectId}/notes/${noteId}/tags/${tagId}`,
 
   // Links (A13-A16)
+  linksManualExtract: (projectId: string) =>
+    `/api/v1/projects/${projectId}/links/manual-extract`,
   links: (projectId: string) => `/api/v1/projects/${projectId}/links`,
   link: (projectId: string, linkId: string) =>
     `/api/v1/projects/${projectId}/links/${linkId}`,

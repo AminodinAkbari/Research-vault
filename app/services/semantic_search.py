@@ -15,6 +15,7 @@ from app.services.ai import (
     parse_json_array,
 )
 from app.services.collected_search import search_collected
+from app.services.content import html_to_text
 
 _SYSTEM_PROMPT = (
     "You are a strict, automated data-processing API. You do not converse, "
@@ -93,7 +94,7 @@ async def _load_document_texts(
             ).where(SavedLink.project_id == project_id, SavedLink.id.in_(link_ids))
         )
         for row in result:
-            extracted = (row.extracted_content or "")[:_LINK_CONTENT_CHARS]
+            extracted = html_to_text(row.extracted_content)[:_LINK_CONTENT_CHARS]
             text = f"{row.title or ''}\n{row.snippet or ''}\n{extracted}".strip()
             texts[_normalize_id(str(row.id))] = text[:_MAX_DOCUMENT_CHARS]
 

@@ -12,7 +12,7 @@ from app.core.dependencies import get_current_project
 from app.core.rate_limiter import ai_rate_limit
 from app.db.session import get_db
 from app.models.project import Project
-from app.schemas.link import SavedLinkCreate, SavedLinkRead, LinkSummaryResponse, LinkStatusUpdate, LinkStatusResponse, ReExtractResponse
+from app.schemas.link import SavedLinkCreate, SavedLinkRead, LinkSummaryResponse, LinkStatusUpdate, LinkStatusResponse, ReExtractResponse, ManualExtractionRequest
 from app.schemas.bulk_tags import BulkTagsRequest, BulkTagsResponse
 from app.services import bulk_tags as bulk_tags_service
 from app.schemas.search import SearchQuery, SearchResult
@@ -61,6 +61,33 @@ async def create_link(
 
     return link
     
+@router.post(
+    "/links/manual-extract",
+    response_model=SavedLinkRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def manual_extract_link(
+    payload: ManualExtractionRequest,
+    project: Project = Depends(get_current_project),
+    db: AsyncSession = Depends(get_db),
+) -> SavedLinkRead:
+    """Create a link from a user-pasted URL and queue content extraction.
+
+    The SearXNG flow saves a link picked from search results; this endpoint is
+    its search-free counterpart, running the same Celery extraction task on a
+    URL the user pastes directly.
+    """
+    link = await link_service.create_link_from_url(
+        db, project_id=project.id, url=payload.url
+    )
+
+    await db.commit()
+    
+    extract_link_content.delay(str(link.id))
+
+    return link
+
+
 @router.post(
     "/link/{link_id}/re-extract",
     status_code=status.HTTP_202_ACCEPTED,

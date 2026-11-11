@@ -15,17 +15,39 @@ export interface WebSearchPanelProps {
 
 export function WebSearchPanel({ projectId }: WebSearchPanelProps) {
   const { results, error, isSearching, search } = useWebSearch(projectId);
-  const { createLink } = useLinks(projectId);
+  const { createLink, manualExtract, isExtracting } = useLinks(projectId);
   const { success } = useToast();
   const [query, setQuery] = useState("");
   const [savedUrls, setSavedUrls] = useState<string[]>([]);
   const [saveErrors, setSaveErrors] = useState<Record<string, string>>({});
+  const [extractUrl, setExtractUrl] = useState("");
+  const [extractError, setExtractError] = useState("");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = query.trim();
     if (!trimmed || isSearching) return;
     await search(trimmed);
+  };
+
+  const handleExtract = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = extractUrl.trim();
+    if (!trimmed || isExtracting) return;
+    setExtractError("");
+    try {
+      await manualExtract(trimmed);
+      setExtractUrl("");
+      success("Link queued for extraction.");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setExtractError("Session expired — please sign in again");
+      } else if (err instanceof ApiError && typeof err.body.detail === "string") {
+        setExtractError(err.body.detail);
+      } else {
+        setExtractError("Something went wrong. Please try again.");
+      }
+    }
   };
 
   const handleSave = async (result: WebSearchResult) => {
@@ -57,24 +79,58 @@ export function WebSearchPanel({ projectId }: WebSearchPanelProps) {
 
   return (
     <div className="space-y-6">
-      <form
-        onSubmit={handleSubmit}
-        aria-label="Search the web"
-        className="sheet flex flex-col gap-4 p-4"
-        noValidate
-      >
-        <Input
-          label="Search the web"
-          name="query"
-          type="search"
-          placeholder="Search the web…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <Button type="submit" isLoading={isSearching} className="self-start">
-          Search
-        </Button>
-      </form>
+      <div className="sheet p-4 flex flex-col gap-6">
+        <form
+          onSubmit={handleSubmit}
+          aria-label="Search the web"
+          className="flex flex-col gap-3"
+          noValidate
+        >
+          <p className="text-sm text-muted-foreground">
+            Search the web for resources to add to your project.
+          </p>
+          <Input
+            label="Web search"
+            name="query"
+            type="search"
+            placeholder="Search the web…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <Button type="submit" isLoading={isSearching} className="self-start">
+            Search
+          </Button>
+        </form>
+
+        <div className="border-t border-border" />
+
+        <form
+          onSubmit={handleExtract}
+          aria-label="Extract a link"
+          className="flex flex-col gap-3"
+          noValidate
+        >
+          <p className="text-sm text-muted-foreground">
+            Already have a URL? Paste it here to extract and save it directly.
+          </p>
+          <Input
+            label="Paste a URL"
+            name="url"
+            type="url"
+            placeholder="https://…"
+            value={extractUrl}
+            onChange={(e) => setExtractUrl(e.target.value)}
+          />
+          <Button type="submit" isLoading={isExtracting} className="self-start">
+            Extract
+          </Button>
+          {extractError && (
+            <p role="alert" className="text-sm text-danger">
+              {extractError}
+            </p>
+          )}
+        </form>
+      </div>
 
       {error && (
         <p role="alert" className="text-sm text-danger">

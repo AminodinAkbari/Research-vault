@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.link import SavedLink
 from app.services import link as link_service
 from app.services.ai import AIError, call_ai
+from app.services.content import html_to_text
 from app.schemas.link import LinkSummaryResponse
 
 _SYSTEM_PROMPT = (
@@ -43,7 +44,7 @@ async def summarise_link(
     if link.summary is not None:
         return link
     
-    content = (link.extracted_content or "").strip()
+    content = html_to_text(link.extracted_content)
     if not content:
         raise LinkNotExtractedError(
             "This link has no extracted content yet. Wait for extraction to "
