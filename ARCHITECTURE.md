@@ -20,9 +20,9 @@ deterministic backend without them.
 - Organize research into **projects** (isolated containers per topic).
 - Write and edit **notes** (Markdown-free plain text for now).
 - Search the web via a self-hosted **SearXNG** instance and **save** results
-  as links.
+  as links, or paste any URL directly for extraction.
 - Automatically **extract readable article text** from saved links in the
-  background (Celery + `readability-lxml`).
+  background (Celery + **trafilatura**, output as structured Markdown).
 - Read saved articles in a distraction-free **reader mode** and **highlight**
   passages with optional annotations.
 - Tag notes and links, and click a tag to see everything under it.
@@ -38,9 +38,8 @@ deterministic backend without them.
   content.
 - **Markdown export** of a whole project (notes, links, highlights) as a
   downloadable file.
-- All of the above through both a **JSON API** (for scripting / external
-  tools) and a **server-rendered HTML+HTMX UI** (for day-to-day use), backed
-  by the exact same service layer.
+- All of the above through a single **JSON API** (`/api/v1`), backed by one
+  service layer shared by every endpoint.
 
 ---
 
@@ -48,7 +47,7 @@ deterministic backend without them.
 
 | Layer                     | Technology                              | Role |
 |----------------------------|------------------------------------------|------|
-| Web framework              | **FastAPI**                              | Async HTTP layer for both the JSON API and the server-rendered UI. |
+| Web framework              | **FastAPI**                              | Async HTTP layer for the JSON API. |
 | ASGI server                | **Uvicorn**                              | Runs the FastAPI app. |
 | ORM                        | **SQLAlchemy 2.0** (async + sync)        | Models, querying. Async engine for request handling, sync engine for Celery. |
 | Database                   | **PostgreSQL 16**                        | Primary datastore; also provides full-text search (`tsvector`/`tsquery`/GIN) with no extra search infrastructure. |
@@ -60,22 +59,19 @@ deterministic backend without them.
 | Background tasks            | **Celery**                               | Runs link content extraction outside the request/response cycle. |
 | Task broker/result backend  | **Redis**                                | Celery's broker and result backend; also used directly by the app for roadmap caching and rate limiting. |
 | Redis client (app-side)     | **redis-py** (async)                     | Async Redis connection used by the rate limiter (`app/core/rate_limiter.py`) and the roadmap cache (`app/services/roadmap.py`). |
-| AI providers                | **huggingface-hub** (`AsyncInferenceClient`) + **httpx** | One shared AI service (`app/services/ai.py`, `call_ai`) with waterfall fallback across OpenRouter → Hugging Face → Groq (any OpenAI-compatible endpoint). Optional per-provider API keys. |
+| AI providers                | **httpx**                                | One shared AI service (`app/services/ai.py`, `call_ai`) with waterfall fallback across OpenRouter → Hugging Face → Groq → Gemini (any OpenAI-compatible endpoint). Optional per-provider API keys. |
 | HTTP client                 | **httpx** (async in the app, sync in the Celery task) | Talks to SearXNG and fetches saved article URLs. |
-| Content extraction          | **readability-lxml** + **lxml**          | Strips a fetched page down to its main article text. |
+| Content extraction          | **trafilatura**                          | Strips a fetched page down to its main article text and outputs structured Markdown. |
 | Web search engine           | **SearXNG** (self-hosted container)      | Privacy-respecting meta search; the app proxies queries to it. |
-| Server-rendered UI          | **Jinja2** (`Jinja2Templates`)            | Renders full pages and HTMX fragments from the same service layer as the API. |
-| Frontend interactivity      | **HTMX**                                 | Partial page updates (create/edit/delete, tab loading, search) without a JS framework or build step. |
-| Styling                     | **Pico.css** (class-less CSS, via CDN)   | Consistent, minimal styling with no build pipeline. |
+| Frontend                    | **Next.js 14** (App Router) + **React** + **Tailwind CSS** | Runs on port 3000, talks to the JSON API over HTTP; proxies `/api/*` to the backend via `next.config.js`. |
+| Testing                     | **pytest**, **pytest-asyncio**, **aiosqlite**, **httpx.AsyncClient** | Integration tests against the real app; SQLite for fast default runs. |
+| Containerization            | **Docker / Docker Compose**              | Runs app, db, redis, searxng, and the Celery worker as separate services. |
 | Testing                     | **pytest**, **pytest-asyncio**, **aiosqlite**, **httpx.AsyncClient** | Integration tests against the real app; SQLite for fast default runs. |
 | Containerization            | **Docker / Docker Compose**              | Runs app, db, redis, searxng, and the Celery worker as separate services. |
 
-The **server-rendered HTMX UI has no separate frontend build** (no
-Node/webpack/React for that surface) — it is server-rendered HTML enhanced with
-HTMX, by design (see §4). The **Next.js port** lives in `frontend/` as its own
-Node/TypeScript build (`npm run dev` on port 3000) and talks to this API over
-HTTP; see §4 *Frontend/backend boundary and CORS (Next.js port)* for how the
-two origins are reconciled.
+The **Next.js frontend** lives in `frontend/` as its own Node/TypeScript build (`npm run dev` on port 3000) and talks to this JSON API over HTTP; see §4 *Frontend/backend boundary and CORS (Next.js port)* for how the two origins are reconciled.
+
+The legacy server-rendered HTMX UI has been removed (commit `50f1018`, "Remove leagacy UI"). The only UI surface is now the JSON API consumed by `frontend/`.
 
 ---
 
@@ -83,7 +79,7 @@ two origins are reconciled.
 
 **Docker Compose services:**
 - `app` — the FastAPI application (Uvicorn), serves *both* `/api/v1/*` JSON
-  endpoints and the HTML/HTMX UI on the same port (8000).
+  endpoints and a health check on port 8000.
 - `db` — PostgreSQL 16, with a healthcheck gating the other services.
 - `redis` — Celery's broker and result backend, *and* the app-side store for
   roadmap caching and fixed-window rate limiting (both via the async
@@ -298,10 +294,10 @@ client-side JS in `read.html` — no schema or API change would be required.
 Every AI-backed feature (explain, summarise, roadmap, tag suggestions,
 semantic rerank) goes through a single `call_ai()` function in
 `app/services/ai.py`. It builds a provider list from whichever optional API
-keys are configured (`OPENROUTER_API_KEY`, `HF_API_KEY`, `GROQ_API_KEY`) and
-tries them in order — OpenRouter first, then Hugging Face's
-`AsyncInferenceClient`, then Groq — falling back to the next provider on any
-failure. This gives three properties for free: features never duplicate
+keys are configured (`OPENROUTER_API_KEY`, `HF_API_KEY`, `GROQ_API_KEY`,
+`GEMINI_API_KEY`) and tries them in order — OpenRouter first, then Hugging
+Face's `AsyncInferenceClient`, then Groq — falling back to the next provider
+on any failure. This gives three properties for free: features never duplicate
 client/auth/parsing code; regional blocking of one provider degrades to the
 next instead of failing the request; and with *no* keys set, `call_ai` raises
 a clear `AIError` that each endpoint maps to its own graceful degradation
@@ -535,33 +531,59 @@ app/
 │                              # duplicated between the JSON API and the
 │                              # HTML UI.
 ├── api/
-│   ├── v1/                   # JSON API routers — thin: validate the
-│   │                          # request via a schema, call a service
-│   │                          # function, translate service exceptions
-│   │                          # (NotFoundError, AlreadyExistsError, ...)
-│   │                          # into the right HTTPException.
-│   │                          # roadmap.py is project-independent
-│   │                          # (`POST /api/v1/roadmap`).
-│   ├── ui.py                  # HTML pages: /, /login, /register,
-│   │                          # /dashboard, /logout
-│   └── ui_project.py          # HTML/HTMX routes for everything under
-│                              # /projects/{id}/...: notes, tags, links,
-│                              # web search, saved-link management, reader
-│                              # mode, highlights, tag filtering, manual
-│                              # re-extraction
-├── templates/
-│   ├── base.html              # Layout: Pico.css + HTMX from CDN, nav,
-│   │                          # shared styling
-│   ├── *.html                 # Full pages (login, register, dashboard,
-│   │                          # project_detail, links/read.html, ...)
-│   └── {notes,tags,links,search,partials}/_*.html
-│                              # Fragment templates — no /base
-│                              # inheritance, returned directly as HTMX
-│                              # swap targets
-└── tasks/
-    ├── celery_app.py          # Celery app config (broker/backend = Redis)
-    └── extraction.py          # The one background task: fetch → extract
-                                # → persist, using the sync engine
+│   └── v1/                   # JSON API routers — thin: validate the
+│                              # request via a schema, call a service
+│                              # function, translate service exceptions
+│                              # (NotFoundError, AlreadyExistsError, ...)
+│                              # into the right HTTPException.
+│                              # roadmap.py is project-independent
+│                              # (`POST /api/v1/roadmap`).
+├── core/
+│   ├── config.py            # Settings (pydantic-settings, reads .env)
+│   ├── security.py          # JWT issue/decode, bcrypt password hashing
+│   ├── dependencies.py      # Auth + project-ownership dependencies —
+│   │                        # header-based and cookie-based variants,
+│   │                        # plus combined and optional-auth variants.
+│   ├── rate_limiter.py      # Redis fixed-window rate limiter factory.
+│   ├── redis.py             # Shared async Redis client (app-side).
+│   └── templates.py         # (removed — no longer used)
+├── db/
+│   ├── base.py               # SQLAlchemy DeclarativeBase
+│   └── session.py            # Async engine/session (FastAPI) AND
+│                              # sync engine/session (Celery) — same DB,
+│                              # two drivers
+├── models/                   # One SQLAlchemy ORM class per table.
+│                              # __init__.py imports all of them so the
+│                              # mapper registry is complete before any
+│                              # query runs, and so Alembic autogenerate
+│                              # sees every table.
+├── schemas/                  # Pydantic request/response models, one file
+│                              # per resource (mirrors models/ roughly)
+├── services/                  # ALL business logic. Pure async functions
+│                              # taking an AsyncSession + explicit kwargs;
+│                              # no HTTP/FastAPI concerns in here at all.
+│                              # Includes the AI-backed services (ai.py =
+│                              # shared `call_ai` + provider waterfall +
+│                              # JSON parsing; roadmap.py, summarisation.py,
+│                              # tag_suggestion.py, semantic_search.py) and
+│                              # bulk_tags.py / export.py. All api/v1/*.py
+│                              # import from here — this is the one place
+│                              # logic lives, so it's never duplicated.
+├── tasks/
+│   ├── celery_app.py          # Celery app config (broker/backend = Redis)
+│   └── extraction.py          # The one background task: fetch → extract
+│                              # → persist, using the sync engine
+
+frontend/
+├── src/app/                  # Next.js App Router routes
+├── src/components/           # React components (reader, notes, links,
+│                              # tags, search, dashboard, roadmap, export)
+├── src/hooks/                # Data fetching / auth hooks
+├── src/lib/                  # API client, utilities
+├── next.config.js            # API rewrites / proxies to backend on :8000
+├── package.json
+├── tailwind.config.ts
+└── tsconfig.json
 
 alembic/
 ├── env.py                     # Reads DATABASE_URL_FOR_ALEMBIC, imports

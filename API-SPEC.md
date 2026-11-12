@@ -100,6 +100,16 @@ Authenticate and receive JWT token.
 
 ---
 
+### `POST /api/v1/auth/logout`
+
+Sign out the user by clearing the authentication cookie.
+
+**Authentication:** None (or cookie)
+
+**Response (204 No Content):** Empty body. Clears the `access_token` cookie.
+
+---
+
 ## Projects
 
 All project endpoints require authentication (JWT or cookie).
@@ -563,6 +573,34 @@ content only), and `snippet` defaults to empty.
 
 ---
 
+### `POST /api/v1/projects/{project_id}/link/{link_id}/re-extract`
+
+Trigger a manual re-extraction of an existing saved link. Resets `extraction_status` to `pending` and re-queues the background Celery task.
+
+**Path Parameters:**
+
+- `project_id` (UUID)
+- `link_id` (UUID)
+
+**Response (202 Accepted):**
+
+```json
+{
+  "id": "dddddddd-eeee-ffff-0000-111111111111",
+  "extraction_status": "pending",
+  "detail": "Re-extraction started"
+}
+```
+
+**Error Codes:**
+
+- `401 Unauthorized`
+- `403 Forbidden` — Not project owner
+- `404 Not Found` — Link not found
+- `500 Internal Server Error` — Extraction trigger failed
+
+---
+
 ### `GET /api/v1/projects/{project_id}/links`
 
 List all saved links in the project.
@@ -881,70 +919,12 @@ Delete a tag by ID. Removes tag from all notes/links.
 
 ## Highlights
 
-Highlights have two parallel implementations:
-
-1. **HTML (HTMX) UI endpoints** — mounted at the root path (`/projects/...`), used by the existing server-rendered UI. Cookie auth only.
-2. **JSON API endpoints** — mounted under `/api/v1`, used by the Next.js frontend (`frontend/src/hooks/useHighlights.ts`). Cookie **or** Bearer auth, same ownership rules as every other `/api/v1/projects/...` route.
-
-### HTML UI endpoints
-
-Highlight endpoints are **server-rendered HTML** (HTMX) endpoints, mounted at root path (`/projects/...`), not under `/api/v1`.
-Authentication via cookie only.
-
-**Base path:** `/projects/{project_id}/links/{link_id}/highlights`
-
-#### `GET /projects/{project_id}/links/{link_id}/read`
-
-Reader mode page displaying link content with highlights.
-
-**Response:** HTML (`text/html`)
-
----
-
-#### `POST /projects/{project_id}/links/{link_id}/highlights`
-
-Create a highlight on a saved link's extracted content.
-
-**Form Data:**
-
-- `selected_text` (string, required) — Exact text selected by user
-- `annotation` (string, optional) — Free-text note
-- `start_offset` (int, default 0) — Character offset in `extracted_content`
-- `end_offset` (int, default 0) — End character offset
-- `color` (string, optional) — Highlight color (e.g., `#ffeb3b`)
-
-**Special Behaviour:**
-
-- Offsets are **not validated** against source text server-side (MVP)
-- Highlight stored with exact `selected_text`; `start_offset`/`end_offset` are metadata for client positioning
-
-**Response:** HTML fragment (`_highlights_list.html` partial)
-
-**Error Codes:**
-
-- `404 Not Found` — Link not found
-
----
-
-#### `DELETE /projects/{project_id}/links/{link_id}/highlights/{highlight_id}`
-
-Delete a highlight.
-
-**Response (200 OK):** Empty body
-
-**Error Codes:**
-
-- `404 Not Found` — Link or highlight not found
-
----
-
-### JSON API endpoints
-
-Implemented in `app/api/v1/links.py`. Auth: `Authorization: Bearer <token>` **or** `access_token` cookie. Project ownership is enforced for every call.
+Highlight endpoints are implemented as JSON API endpoints under `/api/v1/projects/{project_id}/links/{link_id}/highlights` in `app/api/v1/links.py`.
+Authentication requires JWT Bearer token or httpOnly cookie, and project ownership is enforced.
 
 **Base path:** `/api/v1/projects/{project_id}/links/{link_id}/highlights`
 
-#### `GET /api/v1/projects/{project_id}/links/{link_id}/highlights`
+### `GET /api/v1/projects/{project_id}/links/{link_id}/highlights`
 
 List all highlights for a saved link, in creation order.
 
@@ -973,9 +953,9 @@ List all highlights for a saved link, in creation order.
 
 ---
 
-#### `POST /api/v1/projects/{project_id}/links/{link_id}/highlights`
+### `POST /api/v1/projects/{project_id}/links/{link_id}/highlights`
 
-Create a highlight. JSON body (not form data).
+Create a highlight. JSON body.
 
 **Request Body:**
 
@@ -998,7 +978,7 @@ Create a highlight. JSON body (not form data).
 
 ---
 
-#### `DELETE /api/v1/projects/{project_id}/links/{link_id}/highlights/{highlight_id}`
+### `DELETE /api/v1/projects/{project_id}/links/{link_id}/highlights/{highlight_id}`
 
 Delete a single highlight.
 
@@ -1444,7 +1424,7 @@ Same as `CollectedSearchResult` plus:
 }
 ```
 
-### LinkStatusUpdate / LinkStatusResponse / LinkSummaryResponse
+### LinkStatusUpdate / LinkStatusResponse / LinkSummaryResponse / ReExtractResponse
 
 ```json
 { "status": "to_read|reading|done|archived" }
@@ -1458,13 +1438,22 @@ Same as `CollectedSearchResult` plus:
 { "id": "uuid", "summary": "string" }
 ```
 
+```json
+{
+  "id": "uuid",
+  "extraction_status": "pending|completed|failed",
+  "detail": "string"
+}
+```
+
 ---
 
 ## Authentication Flow Summary
 
 1. **Register** → `POST /api/v1/auth/register` → Returns `access_token` + sets httpOnly cookie
 2. **Login** → `POST /api/v1/auth/login` → Returns `access_token` + sets httpOnly cookie
-3. **Authenticated requests** → Include either:
+3. **Logout** → `POST /api/v1/auth/logout` → Deletes `access_token` cookie
+4. **Authenticated requests** → Include either:
    - Header: `Authorization: Bearer <access_token>`
    - Cookie: `access_token=<access_token>` (automatic with browser)
-4. **Project-scoped endpoints** → Require ownership validated via `get_current_project` dependency
+5. **Project-scoped endpoints** → Require ownership validated via `get_current_project` dependency
