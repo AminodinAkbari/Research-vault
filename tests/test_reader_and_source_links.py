@@ -16,15 +16,13 @@ async def _register(client: AsyncClient, email: str = "reader-user@example.com")
     return token
 
 
-async def _create_project_via_ui(client: AsyncClient, name: str = "Reader Project") -> str:
+async def _create_project_via_api(client: AsyncClient, name: str = "Reader Project") -> str:
     response = await client.post(
-        "/dashboard/projects",
-        data={"name": name, "description": "desc"},
-        headers={"HX-Request": "true"},
+        "/api/v1/projects",
+        json={"name": name, "description": "desc"},
     )
-    assert response.status_code == 200
-    api_resp = await client.get("/api/v1/projects")
-    return next(p for p in api_resp.json() if p["name"] == name)["id"]
+    assert response.status_code == 201
+    return response.json()["id"]
 
 
 async def _create_link_via_api(client: AsyncClient, project_id: str, url: str, title: str) -> str:
@@ -108,7 +106,7 @@ async def test_reader_page_unknown_link_404(client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_create_note_with_source_link_via_api(client: AsyncClient) -> None:
     await _register(client)
-    project_id = await _create_project_via_ui(client)
+    project_id = await _create_project_via_api(client)
     link_id = await _create_link_via_api(client, project_id, "https://example.com", "Example")
 
     response = await client.post(

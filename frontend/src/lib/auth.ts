@@ -1,5 +1,5 @@
 import { apiFetch, apiFetchRaw } from "./api";
-import { endpoints, htmlEndpoints } from "./endpoints";
+import { endpoints } from "./endpoints";
 import { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from "./types";
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
@@ -17,13 +17,8 @@ export async function register(data: RegisterRequest): Promise<RegisterResponse>
 }
 
 export async function logout(): Promise<void> {
-  const res = await apiFetchRaw(htmlEndpoints.logout, {
+  await apiFetchRaw(endpoints.logout, {
     method: "POST",
-    redirect: "follow",
   });
-  if (res.redirected) {
-    window.location.href = res.url;
-  } else {
-    window.location.href = "/login";
-  }
+  window.location.href = "/login";
 }

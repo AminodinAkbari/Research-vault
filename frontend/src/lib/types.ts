@@ -234,6 +234,16 @@ export const CollectedSearchResult = z.object({
 });
 export type CollectedSearchResult = z.infer<typeof CollectedSearchResult>;
 
+export const SemanticSearchRequest = z.object({
+  query: z.string().min(1),
+});
+export type SemanticSearchRequest = z.infer<typeof SemanticSearchRequest>;
+
+export const SemanticSearchResult = CollectedSearchResult.extend({
+  semantic: z.boolean().default(true),
+});
+export type SemanticSearchResult = z.infer<typeof SemanticSearchResult>;
+
 export const WebSearchResult = z.object({
   title: z.string(),
   url: z.string().url(),

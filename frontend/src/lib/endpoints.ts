@@ -11,6 +11,7 @@ export const endpoints = {
   // Auth (A1-A2)
   register: "/api/v1/auth/register",
   login: "/api/v1/auth/login",
+  logout: "/api/v1/auth/logout",
 
   // Projects (A3-A5)
   projects: "/api/v1/projects",
@@ -40,6 +41,7 @@ export const endpoints = {
   webSearch: (projectId: string) => `/api/v1/projects/${projectId}/search`,
   collectedSearch: (projectId: string) =>
     `/api/v1/projects/${projectId}/search-collected`,
+  semanticSearch: (projectId: string) => `/api/v1/projects/${projectId}/search-semantic`,
 
   // Tags (A21-A23)
   tags: (projectId: string) => `/api/v1/projects/${projectId}/tags`,
@@ -62,12 +64,4 @@ export const endpoints = {
 
   // Roadmap — AI-generated research roadmap (app/api/v1/roadmap.py)
   roadmap: "/api/v1/roadmap",
-} as const;
-
-// ============================================================================
-// HTML/HTMX Endpoints (root path — only /logout called directly by frontend)
-// ============================================================================
-
-export const htmlEndpoints = {
-  logout: "/logout",
 } as const;
