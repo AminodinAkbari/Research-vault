@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import { CollectedSearchResult } from "@/lib/types";
+import { CollectedSearchResult, SemanticSearchResult } from "@/lib/types";
+import { ApiError } from "@/lib/types";
 
 const ResultList = CollectedSearchResult.array();
+const SemanticResultList = SemanticSearchResult.array();
 
 /** Keystroke → request delay (HTMX parity: `keyup changed delay:500ms`). */
 export const SEARCH_DEBOUNCE_MS = 500;
@@ -22,6 +24,10 @@ export interface UseCollectedSearchResult {
   results: CollectedSearchResult[];
   isLoading: boolean;
   isError: boolean;
+  rerank: () => void;
+  isReranking: boolean;
+  isReranked: boolean;
+  rerankError: ApiError | null;
 }
 
 export function useCollectedSearch(
@@ -29,6 +35,7 @@ export function useCollectedSearch(
 ): UseCollectedSearchResult {
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
+  const queryClient = useQueryClient();
 
   // FR-021: fire ~500ms after typing stops; an empty query never requests and
   // clears the results immediately.
@@ -62,6 +69,32 @@ export function useCollectedSearch(
     staleTime: 30000,
   });
 
+  const rerankMutation = useMutation<
+    SemanticSearchResult[],
+    ApiError,
+    string
+  >({
+    mutationFn: (q: string) =>
+      apiFetch(endpoints.semanticSearch(projectId), SemanticResultList, {
+        method: "POST",
+        body: JSON.stringify({ query: q }),
+      }),
+    onSuccess: (data, q) => {
+      queryClient.setQueryData(["collected-search", projectId, q], data);
+    },
+  });
+
+  useEffect(() => {
+    rerankMutation.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, activeQuery]);
+
+  const rerank = useCallback(() => {
+    if (activeQuery) {
+      rerankMutation.mutate(activeQuery);
+    }
+  }, [activeQuery, rerankMutation]);
+
   return {
     query,
     setQuery,
@@ -70,5 +103,9 @@ export function useCollectedSearch(
     results: activeQuery ? searchQuery.data ?? [] : [],
     isLoading: !!activeQuery && searchQuery.isLoading,
     isError: !!activeQuery && searchQuery.isError,
+    rerank,
+    isReranking: rerankMutation.isPending,
+    isReranked: rerankMutation.isSuccess,
+    rerankError: rerankMutation.error ?? null,
   };
 }

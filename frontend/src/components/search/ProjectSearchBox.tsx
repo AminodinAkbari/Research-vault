@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent } from "react";
+import { Sparkle } from "@phosphor-icons/react";
 import { useCollectedSearch } from "@/hooks/useCollectedSearch";
 import {
   UnifiedResults,
@@ -8,18 +9,39 @@ import {
 } from "@/components/search/UnifiedResults";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import { ApiError } from "@/lib/types";
 
 export interface ProjectSearchBoxProps {
   projectId: string;
   onNoteSelect?: (noteId: string) => void;
 }
 
+function rerankErrorMessage(error: ApiError): string {
+  if (error.status === 429) return "Rate limit reached. Please try again later.";
+  if (error.status === 401) return "Authentication required to use AI reranking.";
+  return typeof error.body.detail === "string"
+    ? error.body.detail
+    : "AI reranking failed. Please try again.";
+}
+
 export function ProjectSearchBox({
   projectId,
   onNoteSelect,
 }: ProjectSearchBoxProps) {
-  const { query, setQuery, submit, activeQuery, results, isLoading, isError } =
-    useCollectedSearch(projectId);
+  const {
+    query,
+    setQuery,
+    submit,
+    activeQuery,
+    results,
+    isLoading,
+    isError,
+    rerank,
+    isReranking,
+    isReranked,
+    rerankError,
+  } = useCollectedSearch(projectId);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -70,14 +92,40 @@ export function ProjectSearchBox({
               No matches found for &quot;{activeQuery}&quot;.
             </p>
           ) : (
-            <UnifiedResults
-              projectId={projectId}
-              results={unified}
-              onNoteSelect={onNoteSelect}
-            />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Sparkle size={14} weight="duotone" />}
+                  onClick={rerank}
+                  isLoading={isReranking}
+                  disabled={isReranking}
+                >
+                  Rerank with AI
+                </Button>
+                {isReranked && (
+                  <Badge variant="success">AI reranked</Badge>
+                )}
+              </div>
+
+              {rerankError && (
+                <p role="alert" className="text-sm text-danger">
+                  {rerankErrorMessage(rerankError)}
+                </p>
+              )}
+
+              <UnifiedResults
+                projectId={projectId}
+                results={unified}
+                onNoteSelect={onNoteSelect}
+              />
+            </div>
           )}
         </div>
       )}
     </section>
   );
 }
+
