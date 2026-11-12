@@ -36,14 +36,14 @@ Research Vault helps you collect, organize, and rediscover information from the 
 
 All of the following are implemented and tested:
 
-- **User authentication** – register, login, JWT-protected endpoints
+- **User authentication** – register, login, logout, JWT-protected endpoints (Bearer header or httpOnly cookie)
 - **Research projects** – create isolated containers for different topics
 - **Notes** – write plain‑text notes inside any project (full CRUD)
 - **Tags** – per-project tags on notes *and* links, plus **bulk tag operations**
-- **Web search & link saving** – search via self-hosted SearXNG, save results with automatic background article extraction
+- **Web search & link saving** – search via self-hosted SearXNG or directly paste URLs with automatic background article extraction (trafilatura + Markdown format)
 - **Reader mode & highlights** – distraction-free reading with colored highlights and annotations
 - **Reading-list statuses** – `to_read` / `reading` / `done` / `archived` workflow states with filtering
-- **Full-text search** – PostgreSQL FTS across notes and links, ranked by relevance
+- **Full-text & semantic search** – PostgreSQL FTS across notes and links, plus AI-reranked semantic search
 - **Markdown export** – compile a whole project (notes, links, highlights) into one downloadable `.md` file
 - **AI-powered helpers** *(optional — set any provider API key to enable)*:
   - **Research Kickstart** – type a topic, get an AI-generated learning roadmap with search keywords (Redis-cached)
@@ -56,7 +56,7 @@ All of the following are implemented and tested:
 - **Full test suite** – async integration tests for all endpoints
 - **Docker Compose** – one command to start the whole stack
 
-AI providers work via a waterfall fallback: set any of `OPENROUTER_API_KEY`, `HF_API_KEY`, or `GROQ_API_KEY` in your `.env`. With none set, the app works perfectly fine without any AI features.
+AI providers work via a waterfall fallback: set any of `OPENROUTER_API_KEY`, `HF_API_KEY`, `GROQ_API_KEY`, or `GEMINI_API_KEY` in your `.env`. With none set, the app works perfectly fine without any AI features.
 
 ## Coming soon
 
@@ -64,7 +64,7 @@ These are planned or under active consideration:
 
 - **Full‑text PDF / EPUB extraction** – expand the extraction pipeline beyond web pages.
 - **Progressive Web App (PWA)** – work offline on mobile, sync when back online.
-- **New frontend** – a modern JS frontend to replace the server-rendered HTMX UI (see `UI-SPEC.md`).
+- **Browser extension** – one-click link and highlight saving from any browser tab.
 
 ---
 
@@ -73,14 +73,15 @@ These are planned or under active consideration:
 | Layer            | Technology                                                        |
 | ---------------- | ----------------------------------------------------------------- |
 | API framework    | FastAPI (async)                                                   |
-| Database         | PostgreSQL 16 + SQLAlchemy 2.0 (async)                            |
+| Database         | PostgreSQL 16 + SQLAlchemy 2.0 (async + sync for Celery)          |
 | Migrations       | Alembic                                                           |
 | Validation       | Pydantic v2                                                       |
 | Caching / broker / rate limiting | Redis                                             |
 | Background tasks | Celery (using Redis as broker)                                    |
-| AI providers     | Hugging Face Inference Client, OpenRouter, Groq (optional keys)   |
+| AI providers     | OpenRouter, Hugging Face, Groq, Gemini (optional keys)            |
 | Search engine    | SearXNG (self‑hosted)                                            |
-| UI               | Server-rendered Jinja2 + HTMX + Pico.css                          |
+| Content extraction | Trafilatura (structured Markdown output)                        |
+| Frontend         | Next.js 14 (App Router) + React + Tailwind CSS                    |
 | Containerization | Docker Compose                                                    |
 | Auth             | JWT via `python-jose`, password hashing with `passlib[bcrypt]`    |
 
@@ -101,7 +102,7 @@ cd research-vault
 
 ```bash
 cp .env.example .env
-# optional: add one AI provider key (OPENROUTER_API_KEY / HF_API_KEY / GROQ_API_KEY)
+# optional: add one AI provider key (OPENROUTER_API_KEY / HF_API_KEY / GROQ_API_KEY / GEMINI_API_KEY)
 ```
 
 ### 3. Start everything
@@ -131,11 +132,10 @@ You can register a user, create projects, write notes, and explore every endpoin
 
 ---
 
-## Frontend development (Next.js port)
+## Frontend development (Next.js)
 
-A Next.js 14 (App Router + Tailwind) port of the HTMX UI lives in `frontend/`.
-It is a separate Node build: the backend keeps serving the original HTMX UI on
-http://localhost:8000, so both UIs run side by side.
+The modern frontend lives in `frontend/` (built with Next.js 14 App Router, TypeScript, and Tailwind CSS).
+The FastAPI backend serves the versioned REST API on http://localhost:8000, and the Next.js app runs on port 3000.
 
 ### Run it
 
