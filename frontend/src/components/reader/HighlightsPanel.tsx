@@ -201,6 +201,27 @@ export function HighlightsPanel({
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="text-muted-foreground hover:text-accent"
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          onExplain(highlight, {
+                            top: rect.top,
+                            left: rect.left,
+                            bottom: rect.bottom,
+                          });
+                        }}
+                        aria-label="Explain highlight"
+                        leftIcon={
+                          <Icon size={14} weight="bold">
+                            <SparkleIcon />
+                          </Icon>
+                        }
+                      >
+                        Explain
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="text-muted-foreground hover:text-danger"
                         onClick={() => setPendingDelete(highlight)}
                       >
