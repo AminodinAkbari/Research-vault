@@ -2,12 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { SparkleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Icon } from "@/components/ui/Icon";
-import { ExplainAnchor } from "@/components/reader/ExplainCard";
 import { highlightColorLabel, resolveHighlightColor } from "@/lib/constants";
 import { ApiError, HighlightRead } from "@/lib/types";
 
@@ -17,8 +14,6 @@ export interface HighlightsPanelProps {
   isError?: boolean;
   deleteHighlight: (highlightId: string) => Promise<void>;
   isDeleting?: boolean;
-  /** Explain this highlight's text with the AI (anchor = the clicked button). */
-  onExplain: (highlight: HighlightRead, anchor: ExplainAnchor) => void;
 }
 
 export function HighlightsPanel({
@@ -27,7 +22,6 @@ export function HighlightsPanel({
   isError = false,
   deleteHighlight,
   isDeleting = false,
-  onExplain,
 }: HighlightsPanelProps) {
   const [pendingDelete, setPendingDelete] = useState<HighlightRead | null>(
     null
@@ -198,27 +192,6 @@ export function HighlightsPanel({
                       {highlightColorLabel(highlight.color)}
                     </span>
                     <div className="ml-auto flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-accent"
-                        onClick={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          onExplain(highlight, {
-                            top: rect.top,
-                            left: rect.left,
-                            bottom: rect.bottom,
-                          });
-                        }}
-                        aria-label="Explain highlight"
-                        leftIcon={
-                          <Icon size={14} weight="bold">
-                            <SparkleIcon />
-                          </Icon>
-                        }
-                      >
-                        Explain
-                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"

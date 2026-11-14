@@ -464,16 +464,6 @@ export default function LinkReaderPage() {
             isError={highlightsError}
             deleteHighlight={deleteHighlight}
             isDeleting={isDeleting}
-            onExplain={(highlight, anchor) =>
-              startExplain(
-                {
-                  selected_text: highlight.selected_text,
-                  start_offset: highlight.start_offset,
-                  end_offset: highlight.end_offset,
-                },
-                anchor
-              )
-            }
           />
         </div>
       </div>
