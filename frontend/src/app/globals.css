@@ -9,6 +9,8 @@ html { font-size: 130%; }
 :root {
   color-scheme: light;
 
+  --font-newsreader: "Newsreader";
+
   /* base */
   --background: #f4f3ef;
   --background-rgb: 244 243 239;
