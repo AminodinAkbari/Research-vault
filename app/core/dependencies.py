@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Cookie, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,8 +19,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 # Name of the httpOnly cookie set by /api/v1/auth/login and /api/v1/auth/register,
-# used by the server-rendered UI (app/api/ui.py, app/api/ui_project.py) to
-# authenticate page loads.
+# used by the Next.js frontend to authenticate requests.
 COOKIE_NAME = "access_token"
 
 _credentials_exception = HTTPException(
@@ -57,11 +56,17 @@ async def _resolve_user_from_token(token: str | None, db: AsyncSession) -> User 
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    token: str | None = Depends(oauth2_scheme_optional),
     db: AsyncSession = Depends(get_db),
+    access_token_cookie: str | None = Cookie(default=None, alias=COOKIE_NAME),
 ) -> User:
-    """API auth dependency: requires a valid `Authorization: Bearer <token>` header."""
-    user = await _resolve_user_from_token(token, db)
+    """API auth dependency: accepts either an `Authorization: Bearer <token>`
+    header or the `access_token` httpOnly cookie. This lets both programmatic
+    clients (curl, mobile apps) and the Next.js frontend authenticate with
+    the same endpoints.
+    """
+    effective_token = token or access_token_cookie
+    user = await _resolve_user_from_token(effective_token, db)
     if user is None:
         raise _credentials_exception
     return user
@@ -96,71 +101,6 @@ async def get_current_project(
 
 
 # ---------------------------------------------------------------------------
-# Cookie-based auth — used by the server-rendered HTML UI
-# (app/api/ui.py, app/api/ui_project.py). The JWT is identical in shape to
-# the header-based token; it's just carried in an httpOnly cookie instead of
-# an Authorization header so plain page navigations and <form>/HTMX requests
-# stay authenticated without any manual header wiring.
-# ---------------------------------------------------------------------------
-
-async def get_current_user_from_cookie(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    """UI auth dependency: requires a valid `access_token` cookie.
-
-    Redirects to /login (via a 303 response) instead of returning a JSON 401,
-    since this guards HTML pages rendered for a browser rather than API calls.
-    """
-    token = request.cookies.get(COOKIE_NAME)
-    user = await _resolve_user_from_token(token, db)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_303_SEE_OTHER,
-            headers={"Location": "/login"},
-        )
-    return user
-
-
-async def get_optional_current_user_from_cookie(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-) -> User | None:
-    """Like `get_current_user_from_cookie`, but returns None instead of
-    redirecting. Used on public pages (login/register/root) that want to know
-    whether someone is already signed in without forcing a redirect loop.
-    """
-    token = request.cookies.get(COOKIE_NAME)
-    return await _resolve_user_from_token(token, db)
-
-
-async def get_current_project_from_cookie(
-    project_id: uuid.UUID,
-    current_user: User = Depends(get_current_user_from_cookie),
-    db: AsyncSession = Depends(get_db),
-) -> Project:
-    """UI counterpart to `get_current_project`: resolves `project_id` from the
-    URL using cookie-based auth and verifies ownership. Delegates to the same
-    `project_service` used by the JSON API — no ownership logic duplicated.
-
-    Raises 404 if the project doesn't exist, 403 if it belongs to someone else.
-    """
-    try:
-        return await project_service.get_owned_project(
-            db, project_id=project_id, user_id=current_user.id
-        )
-    except project_service.ProjectNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
-        ) from exc
-    except project_service.ProjectForbiddenError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have access to this project",
-        ) from exc
-        
-# ---------------------------------------------------------------------------
 # Combined dependencies using `optional` oauth2 schema which can seen in "oauth2_scheme_optional" variable.
 # In these type of schemas, If authorization header not exists, API use access_token for verify users instead.
 # In this method, user still should be logged in"
@@ -172,7 +112,7 @@ async def get_current_user_combined(
     token: str = Depends(oauth2_scheme_optional),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Combined auth: tries header-based auth first, falls back to cookie-based auth.
+    """Combined auth: tries header-based auth first, falls back to cookie-based auth (for Next.js frontend).
 
     Used for API endpoints accessed via both API clients (Authorization header)
     and browser navigation (access_token cookie), like file downloads.

@@ -19,8 +19,8 @@ router = APIRouter()
 
 
 def _set_auth_cookie(response: Response, token: str) -> None:
-    """Set the JWT as an httpOnly cookie so the server-rendered UI (app/api/ui.py)
-    stays authenticated across full-page navigations, in addition to the token
+    """Set the JWT as an httpOnly cookie so the Next.js frontend
+    stays authenticated across requests, in addition to the token
     being returned in the JSON body for API/programmatic clients.
     """
     response.set_cookie(
@@ -82,3 +82,8 @@ async def login(
     token = issue_token_for_user(user)
     _set_auth_cookie(response, token)
     return TokenResponse(access_token=token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response) -> None:
+    response.delete_cookie(COOKIE_NAME, path="/")

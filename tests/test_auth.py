@@ -84,3 +84,16 @@ async def test_protected_route_with_valid_token(client: AsyncClient) -> None:
     assert response.status_code == 200
     # A freshly registered user has no projects yet; the real list endpoint
     assert response.json() == []
+
+
+@pytest.mark.asyncio
+async def test_logout_deletes_cookie(client: AsyncClient) -> None:
+    # First register to obtain a cookie
+    register_response = await client.post("/api/v1/auth/register", json={"email": "logout-test@example.com", "password": "password123"})
+    assert register_response.status_code == 201
+    assert "access_token" in client.cookies
+
+    # Call POST /api/v1/auth/logout
+    logout_response = await client.post("/api/v1/auth/logout")
+    assert logout_response.status_code == 204
+    assert "access_token" not in client.cookies or client.cookies["access_token"] == ""

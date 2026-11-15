@@ -65,10 +65,8 @@ def test_build_user_prompt_includes_type_tags_and_content() -> None:
 
 def test_build_user_prompt_truncates_long_content() -> None:
     content = "x" * 20_000
-    # Passed None for title
     prompt = tag_suggestion_service._build_user_prompt(None, content, "note", ["a"])
-    # Extract just the content block to check the length
-    body = prompt.split("Content:\n", 1)[1].split("\n\nAvailable tags:", 1)[0]
+    body = prompt.split("Body: ", 1)[1].split("\n", 1)[0]
     assert len(body) == tag_suggestion_service._MAX_CONTENT_CHARS
 
 
@@ -419,6 +417,7 @@ async def test_suggest_tags_endpoint_requires_auth(
     _, headers = await make_user()
     project_id = await _project_with_tags(client, headers, ["python"])
 
+    client.cookies.clear()
     response = await client.post(
         f"/api/v1/projects/{project_id}/suggest-tags",
         json={"content": "Some content", "content_type": "note"},

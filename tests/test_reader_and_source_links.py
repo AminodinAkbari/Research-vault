@@ -16,15 +16,13 @@ async def _register(client: AsyncClient, email: str = "reader-user@example.com")
     return token
 
 
-async def _create_project_via_ui(client: AsyncClient, name: str = "Reader Project") -> str:
+async def _create_project_via_api(client: AsyncClient, name: str = "Reader Project") -> str:
     response = await client.post(
-        "/dashboard/projects",
-        data={"name": name, "description": "desc"},
-        headers={"HX-Request": "true"},
+        "/api/v1/projects",
+        json={"name": name, "description": "desc"},
     )
-    assert response.status_code == 200
-    api_resp = await client.get("/api/v1/projects")
-    return next(p for p in api_resp.json() if p["name"] == name)["id"]
+    assert response.status_code == 201
+    return response.json()["id"]
 
 
 async def _create_link_via_api(client: AsyncClient, project_id: str, url: str, title: str) -> str:
@@ -36,7 +34,15 @@ async def _create_link_via_api(client: AsyncClient, project_id: str, url: str, t
     return response.json()["id"]
 
 
+# ---------------------------------------------------------------------------
+# LEGACY UI/HTMX tests — reader page (/read) and server-rendered note forms
+# live in app/api/ui_project.py, which is no longer mounted. Replaced by the
+# Next.js frontend in /frontend. Candidates for deletion.
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_reader_page_shows_not_extracted_message(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -48,6 +54,7 @@ async def test_reader_page_shows_not_extracted_message(client: AsyncClient) -> N
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_reader_page_shows_extracted_content(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -66,6 +73,7 @@ async def test_reader_page_shows_extracted_content(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_reader_page_requires_project_ownership(client: AsyncClient) -> None:
     await _register(client, email="reader-owner@example.com")
     project_id = await _create_project_via_ui(client, name="Owner Reader Project")
@@ -79,6 +87,7 @@ async def test_reader_page_requires_project_ownership(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_reader_page_unknown_link_404(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -97,7 +106,7 @@ async def test_reader_page_unknown_link_404(client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_create_note_with_source_link_via_api(client: AsyncClient) -> None:
     await _register(client)
-    project_id = await _create_project_via_ui(client)
+    project_id = await _create_project_via_api(client)
     link_id = await _create_link_via_api(client, project_id, "https://example.com", "Example")
 
     response = await client.post(
@@ -109,6 +118,7 @@ async def test_create_note_with_source_link_via_api(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_create_note_via_ui_with_source_link(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -124,6 +134,7 @@ async def test_create_note_via_ui_with_source_link(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_edit_note_form_includes_source_link_dropdown(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -142,6 +153,7 @@ async def test_edit_note_form_includes_source_link_dropdown(client: AsyncClient)
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_update_note_can_clear_source_link(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)

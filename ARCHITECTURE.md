@@ -20,9 +20,9 @@ deterministic backend without them.
 - Organize research into **projects** (isolated containers per topic).
 - Write and edit **notes** (Markdown-free plain text for now).
 - Search the web via a self-hosted **SearXNG** instance and **save** results
-  as links.
+  as links, or paste any URL directly for extraction.
 - Automatically **extract readable article text** from saved links in the
-  background (Celery + `readability-lxml`).
+  background (Celery + **trafilatura**, output as structured Markdown).
 - Read saved articles in a distraction-free **reader mode** and **highlight**
   passages with optional annotations.
 - Tag notes and links, and click a tag to see everything under it.
@@ -38,9 +38,8 @@ deterministic backend without them.
   content.
 - **Markdown export** of a whole project (notes, links, highlights) as a
   downloadable file.
-- All of the above through both a **JSON API** (for scripting / external
-  tools) and a **server-rendered HTML+HTMX UI** (for day-to-day use), backed
-  by the exact same service layer.
+- All of the above through a single **JSON API** (`/api/v1`), backed by one
+  service layer shared by every endpoint.
 
 ---
 
@@ -48,7 +47,7 @@ deterministic backend without them.
 
 | Layer                     | Technology                              | Role |
 |----------------------------|------------------------------------------|------|
-| Web framework              | **FastAPI**                              | Async HTTP layer for both the JSON API and the server-rendered UI. |
+| Web framework              | **FastAPI**                              | Async HTTP layer for the JSON API. |
 | ASGI server                | **Uvicorn**                              | Runs the FastAPI app. |
 | ORM                        | **SQLAlchemy 2.0** (async + sync)        | Models, querying. Async engine for request handling, sync engine for Celery. |
 | Database                   | **PostgreSQL 16**                        | Primary datastore; also provides full-text search (`tsvector`/`tsquery`/GIN) with no extra search infrastructure. |
@@ -60,18 +59,19 @@ deterministic backend without them.
 | Background tasks            | **Celery**                               | Runs link content extraction outside the request/response cycle. |
 | Task broker/result backend  | **Redis**                                | Celery's broker and result backend; also used directly by the app for roadmap caching and rate limiting. |
 | Redis client (app-side)     | **redis-py** (async)                     | Async Redis connection used by the rate limiter (`app/core/rate_limiter.py`) and the roadmap cache (`app/services/roadmap.py`). |
-| AI providers                | **huggingface-hub** (`AsyncInferenceClient`) + **httpx** | One shared AI service (`app/services/ai.py`, `call_ai`) with waterfall fallback across OpenRouter → Hugging Face → Groq (any OpenAI-compatible endpoint). Optional per-provider API keys. |
+| AI providers                | **httpx**                                | One shared AI service (`app/services/ai.py`, `call_ai`) with waterfall fallback across OpenRouter → Hugging Face → Groq → Gemini (any OpenAI-compatible endpoint). Optional per-provider API keys. |
 | HTTP client                 | **httpx** (async in the app, sync in the Celery task) | Talks to SearXNG and fetches saved article URLs. |
-| Content extraction          | **readability-lxml** + **lxml**          | Strips a fetched page down to its main article text. |
+| Content extraction          | **trafilatura**                          | Strips a fetched page down to its main article text and outputs structured Markdown. |
 | Web search engine           | **SearXNG** (self-hosted container)      | Privacy-respecting meta search; the app proxies queries to it. |
-| Server-rendered UI          | **Jinja2** (`Jinja2Templates`)            | Renders full pages and HTMX fragments from the same service layer as the API. |
-| Frontend interactivity      | **HTMX**                                 | Partial page updates (create/edit/delete, tab loading, search) without a JS framework or build step. |
-| Styling                     | **Pico.css** (class-less CSS, via CDN)   | Consistent, minimal styling with no build pipeline. |
+| Frontend                    | **Next.js 14** (App Router) + **React** + **Tailwind CSS** | Runs on port 3000, talks to the JSON API over HTTP; proxies `/api/*` to the backend via `next.config.js`. |
+| Testing                     | **pytest**, **pytest-asyncio**, **aiosqlite**, **httpx.AsyncClient** | Integration tests against the real app; SQLite for fast default runs. |
+| Containerization            | **Docker / Docker Compose**              | Runs app, db, redis, searxng, and the Celery worker as separate services. |
 | Testing                     | **pytest**, **pytest-asyncio**, **aiosqlite**, **httpx.AsyncClient** | Integration tests against the real app; SQLite for fast default runs. |
 | Containerization            | **Docker / Docker Compose**              | Runs app, db, redis, searxng, and the Celery worker as separate services. |
 
-There is no separate frontend build (no Node/webpack/React) — the UI is
-server-rendered HTML enhanced with HTMX, by design (see §4).
+The **Next.js frontend** lives in `frontend/` as its own Node/TypeScript build (`npm run dev` on port 3000) and talks to this JSON API over HTTP; see §4 *Frontend/backend boundary and CORS (Next.js port)* for how the two origins are reconciled.
+
+The legacy server-rendered HTMX UI has been removed (commit `50f1018`, "Remove leagacy UI"). The only UI surface is now the JSON API consumed by `frontend/`.
 
 ---
 
@@ -79,7 +79,7 @@ server-rendered HTML enhanced with HTMX, by design (see §4).
 
 **Docker Compose services:**
 - `app` — the FastAPI application (Uvicorn), serves *both* `/api/v1/*` JSON
-  endpoints and the HTML/HTMX UI on the same port (8000).
+  endpoints and a health check on port 8000.
 - `db` — PostgreSQL 16, with a healthcheck gating the other services.
 - `redis` — Celery's broker and result backend, *and* the app-side store for
   roadmap caching and fixed-window rate limiting (both via the async
@@ -223,37 +223,58 @@ one shared `_resolve_user_from_token()` helper in
 `app/core/dependencies.py`, so the actual token-validation logic is not
 duplicated — only the *place the token is read from* differs.
 
-### Why extracted content is stored as plain text — and a correction on rendering
-`app/tasks/extraction.py` runs `readability-lxml` to isolate the article's
-main HTML, then immediately strips it down with
-`fromstring(raw_html).text_content()` before it's ever written to the
-database. **The stored `extracted_content` column is plain text, not HTML.**
+### Why extracted content is stored as structured Markdown
 
-The reasoning: the source of that content is an arbitrary, untrusted
-third-party web page. Storing raw (or even "sanitized") HTML from the open
-web and re-rendering it inside the app's own pages is a much bigger attack
-surface (stored XSS via a malicious saved article) for very little payoff in
-a plain-text reading experience. Plain text also keeps full-text search
-simpler (no tag-stripping needed at query time) and keeps the reader view
-fast and predictable.
+`app/tasks/extraction.py` uses `trafilatura` to isolate the article's main body
+from boilerplate (navigation, ads, footers, scripts) and converts it directly
+into structured Markdown (`output_format="markdown"`, `include_formatting=True`)
+before writing it to the database. It also extracts page metadata via
+`trafilatura.extract_metadata()` to automatically populate `SavedLink.title`
+when a link is saved manually without a search-result title. **The stored
+`extracted_content` column is clean, structured Markdown — neither flat plain
+text nor raw/sanitized HTML.**
 
-One correction versus how this is sometimes phrased: the reader-mode and
-"view content" templates render `extracted_content` through Jinja's **default
-auto-escaping** (`{{ link.extracted_content }}` inside a `<div>`/`<pre>`),
-**not** with the `|safe` filter. That's intentional and consistent with the
-"plain text, not HTML" decision above — using `|safe` would only make sense
-if the field actually contained trusted markup, which it deliberately does
-not. If a future version wants basic formatting (paragraphs, headings) in
-the reader view, the right fix is to store a small amount of *sanitized*
-HTML (e.g. via `bleach`) at extraction time, not to mark the current
-plain-text field as safe.
+Earlier iterations either flattened the article into a single plain-text blob
+(which destroyed headings, paragraph breaks, lists, and blockquotes) or saved
+raw response text. Storing structured Markdown solves both problems while
+avoiding the security and rendering pitfalls of stored HTML:
+
+1. **Zero stored-XSS surface without HTML allow-list maintenance:** In the
+   Next.js reader (`page.tsx`), `extracted_content` is rendered through
+   `react-markdown`, which builds React elements directly from the Markdown AST
+   and escapes raw HTML by default instead of relying on
+   `dangerouslySetInnerHTML` or Jinja `|safe`.
+2. **Preserved document hierarchy:** Headings (`#`, `##`, `###`), paragraphs,
+   ordered/unordered lists, blockquotes, and code blocks are preserved in
+   PostgreSQL and mapped to styled semantic typography in the reader view.
+3. **Clean input for downstream consumers:** Features that operate on text —
+   such as AI explanations (`useExplainText`), note generation, and full-text
+   search — can consume `extracted_content` directly without stripping noisy
+   HTML tags or indexing markup attributes.
 
 ### Why highlight offsets are integer character positions
+
+`Highlight.start_offset` and `Highlight.end_offset` are plain integers over the
+rendered text stream of `#reader-article` (calculated via `computeGlobalOffset`
+and painted via `useHighlightMarks`).
+
+To keep DOM character offsets deterministic across multiple block elements
+(`<p>`, `<h2>`, `<ul>`, `<blockquote>`), the `ReactMarkdown` tree in `page.tsx`
+is wrapped in `useMemo` keyed solely on `link.extracted_content`. This ensures
+that interactive UI state updates (selecting text, opening the highlight popup,
+or viewing an AI explanation card) do not re-render the article DOM or wipe out
+the `<mark>` elements injected by `useHighlightMarks`. Storing integer offsets
+over the rendered text stream keeps the database schema simple, avoids fragile
+XPath/DOM-node selectors, and allows highlights to span cleanly across inline
+formatting.
+
+### Why highlight offsets are integer character positions
+
 `Highlight.start_offset` / `Highlight.end_offset` are plain integers over
-the character stream of `extracted_content`. This is the simplest possible
-representation: it doesn't depend on DOM structure, survives the content
-being re-rendered differently later, and is trivial to store/index — no need
-for a DOM-path-based anchoring scheme.
+the character stream of `extracted_content`'s text content. This is the
+simplest possible representation: it doesn't depend on DOM structure,
+survives the content being re-rendered differently later, and is trivial to
+store/index — no need for a DOM-path-based anchoring scheme.
 
 **Current implementation status, stated plainly:** the reader page's
 selection-to-highlight flow (`links/read.html`) currently sends
@@ -273,10 +294,10 @@ client-side JS in `read.html` — no schema or API change would be required.
 Every AI-backed feature (explain, summarise, roadmap, tag suggestions,
 semantic rerank) goes through a single `call_ai()` function in
 `app/services/ai.py`. It builds a provider list from whichever optional API
-keys are configured (`OPENROUTER_API_KEY`, `HF_API_KEY`, `GROQ_API_KEY`) and
-tries them in order — OpenRouter first, then Hugging Face's
-`AsyncInferenceClient`, then Groq — falling back to the next provider on any
-failure. This gives three properties for free: features never duplicate
+keys are configured (`OPENROUTER_API_KEY`, `HF_API_KEY`, `GROQ_API_KEY`,
+`GEMINI_API_KEY`) and tries them in order — OpenRouter first, then Hugging
+Face's `AsyncInferenceClient`, then Groq — falling back to the next provider
+on any failure. This gives three properties for free: features never duplicate
 client/auth/parsing code; regional blocking of one provider degrades to the
 next instead of failing the request; and with *no* keys set, `call_ai` raises
 a clear `AIError` that each endpoint maps to its own graceful degradation
@@ -313,6 +334,64 @@ login. When Redis is unavailable, behaviour follows `RATE_LIMITER_FAIL_OPEN`
 `false`: fail closed with `503`). Quota headers (`X-RateLimit-Limit`,
 `X-RateLimit-Remaining`, `Retry-After` on 429) are always set so callers can
 see remaining quota before hitting it.
+
+### Frontend/backend boundary and CORS (Next.js port)
+
+**Context.** The ported UI lives in `frontend/` (Next.js 14 App Router + Tailwind,
+TypeScript) and runs on the host with `npm run dev` on port 3000, while the
+FastAPI backend keeps running in Docker on port 8000. The two are separate
+origins, so anything the browser sends *directly* to `:8000` is a cross-origin,
+credentialed request (auth is an httpOnly `access_token` cookie, so
+`credentials: 'include'` is mandatory and `Access-Control-Allow-Credentials`
+must be on).
+
+**Options considered.**
+
+1. **Proxy everything through Next.js** — rewrites route `/api/*` to the
+   backend, all requests stay same-origin, no CORS at all.
+2. **Explicit CORS allowlist on FastAPI** — the browser talks to `:8000`
+   directly.
+3. **Same origin deployment** (serve the built frontend from FastAPI, or put
+   both behind one reverse proxy) — no CORS, but it contradicts the constraint
+   that the backend ships unchanged and the frontend is developed on the host.
+
+**Decision.** Option 1 as the default path, with Option 2 as the required
+escape hatch:
+
+- `frontend/src/lib/api.ts` uses **relative** URLs (`API_BASE = ""`), so every
+  normal API call goes to `http://localhost:3000/api/...` and is proxied by the
+  rewrites in `frontend/next.config.js` (`/api/:path*` →
+  `http://localhost:8000/api/:path*`, `/logout` → `http://localhost:8000/logout`).
+  Same-origin, no CORS preflight, and Playwright's `page.request` (which also
+  uses relative URLs) needs no extra configuration.
+- Direct browser → backend calls still exist (e.g. the session probe in
+  `frontend/src/hooks/useAuth.ts` hits `http://localhost:8000/api/v1/projects`),
+  so `app/main.py` carries an explicit allowlist: the pre-existing `:4200`
+  origins plus `http://localhost:3000` and `http://127.0.0.1:3000`, with
+  `allow_credentials=True`. **Adding those two origins is the only backend
+  change this feature makes** (constraint C-2); no endpoint is added, removed,
+  or altered (C-3).
+- `frontend/.env.example` exposes `NEXT_PUBLIC_API_BASE=http://localhost:8000`
+  as the documented backend location for tooling and for anyone who wants to
+  point the client at the backend directly.
+
+**Consequences.**
+
+- The frontend is a pure client of the documented REST API: no business rules,
+  authorization, validation, or limits live in the browser — client-side checks
+  are UX mirrors of server rules only, and nothing on the frontend reads or
+  stores the JWT (cookie only; constitution *Frontend/Backend Boundary*).
+- The backend's observable behaviour is unchanged apart from two extra allowed
+  origins; the HTMX UI keeps working on its original origins and on
+  same-origin requests.
+- Credentials + `allow_origins=["*"]` cannot be combined, so the allowlist
+  stays explicit. A missed origin surfaces as a browser CORS error, which
+  `specs/001-nextjs-frontend/quickstart.md` maps back to the `origins` list in
+  `app/main.py`.
+- The two mechanisms must stay in sync: if the rewrites in `next.config.js`
+  ever change their destination, or a new frontend origin is added (LAN IP,
+  HTTPS tunnel), both `next.config.js` and the `origins` list in `app/main.py`
+  need checking.
 
 ---
 
@@ -452,33 +531,59 @@ app/
 │                              # duplicated between the JSON API and the
 │                              # HTML UI.
 ├── api/
-│   ├── v1/                   # JSON API routers — thin: validate the
-│   │                          # request via a schema, call a service
-│   │                          # function, translate service exceptions
-│   │                          # (NotFoundError, AlreadyExistsError, ...)
-│   │                          # into the right HTTPException.
-│   │                          # roadmap.py is project-independent
-│   │                          # (`POST /api/v1/roadmap`).
-│   ├── ui.py                  # HTML pages: /, /login, /register,
-│   │                          # /dashboard, /logout
-│   └── ui_project.py          # HTML/HTMX routes for everything under
-│                              # /projects/{id}/...: notes, tags, links,
-│                              # web search, saved-link management, reader
-│                              # mode, highlights, tag filtering, manual
-│                              # re-extraction
-├── templates/
-│   ├── base.html              # Layout: Pico.css + HTMX from CDN, nav,
-│   │                          # shared styling
-│   ├── *.html                 # Full pages (login, register, dashboard,
-│   │                          # project_detail, links/read.html, ...)
-│   └── {notes,tags,links,search,partials}/_*.html
-│                              # Fragment templates — no /base
-│                              # inheritance, returned directly as HTMX
-│                              # swap targets
-└── tasks/
-    ├── celery_app.py          # Celery app config (broker/backend = Redis)
-    └── extraction.py          # The one background task: fetch → extract
-                                # → persist, using the sync engine
+│   └── v1/                   # JSON API routers — thin: validate the
+│                              # request via a schema, call a service
+│                              # function, translate service exceptions
+│                              # (NotFoundError, AlreadyExistsError, ...)
+│                              # into the right HTTPException.
+│                              # roadmap.py is project-independent
+│                              # (`POST /api/v1/roadmap`).
+├── core/
+│   ├── config.py            # Settings (pydantic-settings, reads .env)
+│   ├── security.py          # JWT issue/decode, bcrypt password hashing
+│   ├── dependencies.py      # Auth + project-ownership dependencies —
+│   │                        # header-based and cookie-based variants,
+│   │                        # plus combined and optional-auth variants.
+│   ├── rate_limiter.py      # Redis fixed-window rate limiter factory.
+│   ├── redis.py             # Shared async Redis client (app-side).
+│   └── templates.py         # (removed — no longer used)
+├── db/
+│   ├── base.py               # SQLAlchemy DeclarativeBase
+│   └── session.py            # Async engine/session (FastAPI) AND
+│                              # sync engine/session (Celery) — same DB,
+│                              # two drivers
+├── models/                   # One SQLAlchemy ORM class per table.
+│                              # __init__.py imports all of them so the
+│                              # mapper registry is complete before any
+│                              # query runs, and so Alembic autogenerate
+│                              # sees every table.
+├── schemas/                  # Pydantic request/response models, one file
+│                              # per resource (mirrors models/ roughly)
+├── services/                  # ALL business logic. Pure async functions
+│                              # taking an AsyncSession + explicit kwargs;
+│                              # no HTTP/FastAPI concerns in here at all.
+│                              # Includes the AI-backed services (ai.py =
+│                              # shared `call_ai` + provider waterfall +
+│                              # JSON parsing; roadmap.py, summarisation.py,
+│                              # tag_suggestion.py, semantic_search.py) and
+│                              # bulk_tags.py / export.py. All api/v1/*.py
+│                              # import from here — this is the one place
+│                              # logic lives, so it's never duplicated.
+├── tasks/
+│   ├── celery_app.py          # Celery app config (broker/backend = Redis)
+│   └── extraction.py          # The one background task: fetch → extract
+│                              # → persist, using the sync engine
+
+frontend/
+├── src/app/                  # Next.js App Router routes
+├── src/components/           # React components (reader, notes, links,
+│                              # tags, search, dashboard, roadmap, export)
+├── src/hooks/                # Data fetching / auth hooks
+├── src/lib/                  # API client, utilities
+├── next.config.js            # API rewrites / proxies to backend on :8000
+├── package.json
+├── tailwind.config.ts
+└── tsconfig.json
 
 alembic/
 ├── env.py                     # Reads DATABASE_URL_FOR_ALEMBIC, imports
@@ -506,8 +611,7 @@ produce output (Pydantic-serialized JSON vs a rendered template).
 
 ## 8. Background Tasks
 
-The only background task today is `extract_link_content` (`app/tasks/
-extraction.py`), registered on the shared `celery_app`
+The only background task today is `extract_link_content` (`app/tasks/ extraction.py`), registered on the shared `celery_app`
 (`app/tasks/celery_app.py`, broker = Redis).
 
 **Dispatch points:**
@@ -531,8 +635,7 @@ extraction.py`), registered on the shared `celery_app`
 4. Runs `readability.Document(...).summary()` to isolate the article HTML,
    then `lxml.html.fromstring(...).text_content()` to reduce it to plain
    text (see §4 on why plain text, not HTML, is stored).
-5. On success: sets `extracted_content` and `extraction_status =
-   completed`. On *any* exception (network error, HTTP error status,
+5. On success: sets `extracted_content` and `extraction_status = completed`. On *any* exception (network error, HTTP error status,
    parsing failure): sets `extraction_status = failed` and logs the
    exception — the task always resolves to a terminal status, so a link
    never gets stuck showing "pending" forever because of a page that timed

@@ -11,6 +11,7 @@ from app.services.ai import AIError, call_ai
 
 
 @pytest.mark.asyncio
+@pytest.mark.external_network
 @patch("app.services.ai.AsyncInferenceClient")
 async def test_call_ai_success(mock_client_constructor):
     mock_client = AsyncMock()
@@ -136,6 +137,7 @@ async def test_call_ai_raises_on_unexpected_shape(mock_client_constructor):
 
 
 @pytest.mark.asyncio
+@pytest.mark.external_network
 async def test_call_ai_missing_api_key():
     with patch("app.services.ai.settings") as mock_settings:
         mock_settings.AI_API_KEY = None

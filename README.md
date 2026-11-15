@@ -8,11 +8,22 @@
 
 A self-hosted research and knowledge management platform you can run on your own machine. Collect web research, extract and read articles distraction-free, highlight passages, take notes — with **optional** one-shot AI helpers (summaries, roadmaps, semantic search) that stay out of the way when unconfigured.
 
+⭐ If you find this useful, please consider starring the repo!
+
+## Feature Showcase
+
+### 1. Reader Mode, Highlights & AI Explanations
+![Reader Mode and AI Explanations](./docs/output.webp)
+
+### 2. Web Search & Asynchronous Content Extraction
+![Web Search and Celery Extraction](./docs/output-2.webp)
+
+### 3. AI Research Roadmap, Semantic Search & Markdown Export
+![Roadmap, Search, and Export](./docs/output-3.webp)
+
 > ⚠️ **Active development** – new features land every few days. Check back often or star the repo to follow along.
 
 ---
-
-⭐ If you find this useful, please consider starring the repo!
 
 ## What is this?
 
@@ -36,14 +47,14 @@ Research Vault helps you collect, organize, and rediscover information from the 
 
 All of the following are implemented and tested:
 
-- **User authentication** – register, login, JWT-protected endpoints
+- **User authentication** – register, login, logout, JWT-protected endpoints (Bearer header or httpOnly cookie)
 - **Research projects** – create isolated containers for different topics
 - **Notes** – write plain‑text notes inside any project (full CRUD)
 - **Tags** – per-project tags on notes *and* links, plus **bulk tag operations**
-- **Web search & link saving** – search via self-hosted SearXNG, save results with automatic background article extraction
+- **Web search & link saving** – search via self-hosted SearXNG or directly paste URLs with automatic background article extraction (trafilatura + Markdown format)
 - **Reader mode & highlights** – distraction-free reading with colored highlights and annotations
 - **Reading-list statuses** – `to_read` / `reading` / `done` / `archived` workflow states with filtering
-- **Full-text search** – PostgreSQL FTS across notes and links, ranked by relevance
+- **Full-text & semantic search** – PostgreSQL FTS across notes and links, plus AI-reranked semantic search
 - **Markdown export** – compile a whole project (notes, links, highlights) into one downloadable `.md` file
 - **AI-powered helpers** *(optional — set any provider API key to enable)*:
   - **Research Kickstart** – type a topic, get an AI-generated learning roadmap with search keywords (Redis-cached)
@@ -56,7 +67,7 @@ All of the following are implemented and tested:
 - **Full test suite** – async integration tests for all endpoints
 - **Docker Compose** – one command to start the whole stack
 
-AI providers work via a waterfall fallback: set any of `OPENROUTER_API_KEY`, `HF_API_KEY`, or `GROQ_API_KEY` in your `.env`. With none set, the app works perfectly fine without any AI features.
+AI providers work via a waterfall fallback: set any of `OPENROUTER_API_KEY`, `HF_API_KEY`, `GROQ_API_KEY`, or `GEMINI_API_KEY` in your `.env`. With none set, the app works perfectly fine without any AI features.
 
 ## Coming soon
 
@@ -64,7 +75,7 @@ These are planned or under active consideration:
 
 - **Full‑text PDF / EPUB extraction** – expand the extraction pipeline beyond web pages.
 - **Progressive Web App (PWA)** – work offline on mobile, sync when back online.
-- **New frontend** – a modern JS frontend to replace the server-rendered HTMX UI (see `UI-SPEC.md`).
+- **Browser extension** – one-click link and highlight saving from any browser tab.
 
 ---
 
@@ -73,14 +84,15 @@ These are planned or under active consideration:
 | Layer            | Technology                                                        |
 | ---------------- | ----------------------------------------------------------------- |
 | API framework    | FastAPI (async)                                                   |
-| Database         | PostgreSQL 16 + SQLAlchemy 2.0 (async)                            |
+| Database         | PostgreSQL 16 + SQLAlchemy 2.0 (async + sync for Celery)          |
 | Migrations       | Alembic                                                           |
 | Validation       | Pydantic v2                                                       |
 | Caching / broker / rate limiting | Redis                                             |
 | Background tasks | Celery (using Redis as broker)                                    |
-| AI providers     | Hugging Face Inference Client, OpenRouter, Groq (optional keys)   |
+| AI providers     | OpenRouter, Hugging Face, Groq, Gemini (optional keys)            |
 | Search engine    | SearXNG (self‑hosted)                                            |
-| UI               | Server-rendered Jinja2 + HTMX + Pico.css                          |
+| Content extraction | Trafilatura (structured Markdown output)                        |
+| Frontend         | Next.js 14 (App Router) + React + Tailwind CSS                    |
 | Containerization | Docker Compose                                                    |
 | Auth             | JWT via `python-jose`, password hashing with `passlib[bcrypt]`    |
 
@@ -101,7 +113,7 @@ cd research-vault
 
 ```bash
 cp .env.example .env
-# optional: add one AI provider key (OPENROUTER_API_KEY / HF_API_KEY / GROQ_API_KEY)
+# optional: add one AI provider key (OPENROUTER_API_KEY / HF_API_KEY / GROQ_API_KEY / GEMINI_API_KEY)
 ```
 
 ### 3. Start everything
@@ -128,6 +140,71 @@ docker compose exec app alembic upgrade head
 
 Go to http://localhost:8000/docs.
 You can register a user, create projects, write notes, and explore every endpoint directly from the browser.
+
+---
+
+## Frontend development (Next.js)
+
+The modern frontend lives in `frontend/` (built with Next.js 14 App Router, TypeScript, and Tailwind CSS).
+The FastAPI backend serves the versioned REST API on http://localhost:8000, and the Next.js app runs on port 3000.
+
+### Run it
+
+```bash
+# 1. backend up (from the repo root)
+docker compose up -d
+
+# 2. frontend
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+# → http://localhost:3000
+```
+
+### Environment
+
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `NEXT_PUBLIC_API_BASE` | `http://localhost:8000` | Backend API location. The client fetches `/api/...` with relative URLs; Next.js rewrites proxy them to this backend. Restart `npm run dev` after editing `.env.local`. |
+
+### CORS
+
+The frontend runs on port 3000 and the API on port 8000 (different origins):
+
+- **Default path:** API calls use relative URLs and are proxied by the rewrites
+  in `frontend/next.config.js` (`/api/:path*` and `/logout` → `http://localhost:8000`),
+  so they are same-origin and need no CORS.
+- **Direct `:8000` calls** from the browser (e.g. the session probe in
+  `frontend/src/hooks/useAuth.ts`) are cross-origin and rely on the explicit
+  allowlist in `app/main.py`:
+
+```python
+origins = [
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+```
+
+Serve the frontend from another host/port and add that origin to this list.
+Because auth is an httpOnly cookie, every request uses `credentials: 'include'`
+and the API uses `allow_credentials=True` — an `allow_origins=["*"]` wildcard
+is not an option. A missing origin shows up as a CORS error in the browser
+console; see the troubleshooting table in
+[`specs/001-nextjs-frontend/quickstart.md`](specs/001-nextjs-frontend/quickstart.md).
+
+### Checks
+
+```bash
+cd frontend
+npm run lint        # ESLint
+npm run typecheck   # tsc --noEmit
+npm run test        # Vitest unit tests
+npm run test:e2e    # Playwright (backend must be running)
+npm run build       # production build
+```
 
 ---
 

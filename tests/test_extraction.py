@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import pytest_asyncio
+from httpx import AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -58,31 +59,36 @@ class TestCreateLinkTriggersExtraction:
     async def project_id(self) -> uuid.UUID:
         return uuid.uuid4()
 
-    @patch("app.services.link.extract_link_content.delay")
+    @patch("app.api.v1.links.extract_link_content.delay")
     async def test_create_link_triggers_extraction_task(
         self,
         mock_delay: MagicMock,
-        db_session,
-        project_id: uuid.UUID,
+        client: AsyncClient,
+        make_user,
     ) -> None:
-        link = await create_link(
-            db_session,
-            project_id=project_id,
-            url="https://example.com/article",
-            title="Test Article",
-            snippet="Test snippet",
-        )
+        _, headers = await make_user()
+        proj_resp = await client.post("/api/v1/projects", json={"name": "Test Proj"}, headers=headers)
+        project_id = proj_resp.json()["id"]
 
-        mock_delay.assert_called_once_with(str(link.id))
-        assert link.extraction_status == ExtractionStatus.pending
+        resp = await client.post(
+            f"/api/v1/projects/{project_id}/links",
+            json={
+                "url": "https://example.com/article",
+                "title": "Test Article",
+                "snippet": "Test snippet",
+            },
+            headers=headers,
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        mock_delay.assert_called_once_with(body["id"])
+        assert body["extraction_status"] == ExtractionStatus.pending
 
 
 class TestExtractionTask:
     @patch("app.tasks.extraction.httpx.Client")
-    @patch("app.tasks.extraction.Document")
-    def test_extract_link_content_success(
+    def test_extract_link_content_stores_clean_content(
         self,
-        mock_document: MagicMock,
         mock_client_class: MagicMock,
         sync_db_session: Session,
         saved_link_id: uuid.UUID,
@@ -90,13 +96,10 @@ class TestExtractionTask:
         mock_client = MagicMock()
         mock_client_class.return_value.__enter__.return_value = mock_client
         mock_response = MagicMock()
-        mock_response.text = "<html><body><p>Article content</p></body></html>"
+        raw_body = "<html><body><p>Article content</p></body></html>"
+        mock_response.text = raw_body
         mock_response.raise_for_status = MagicMock()
         mock_client.get.return_value = mock_response
-
-        mock_doc_instance = MagicMock()
-        mock_doc_instance.summary.return_value = "<div>Article content</div>"
-        mock_document.return_value = mock_doc_instance
 
         from app.tasks.extraction import extract_link_content
         import app.tasks.extraction as extraction_module
@@ -113,8 +116,6 @@ class TestExtractionTask:
             assert link.extraction_status == ExtractionStatus.completed
             assert link.extracted_content == "Article content"
             mock_client.get.assert_called_once_with("https://example.com/article")
-            mock_document.assert_called_once_with(mock_response.text)
-            mock_doc_instance.summary.assert_called_once()
 
         finally:
             extraction_module.SessionLocal = original_session_local
@@ -151,22 +152,21 @@ class TestExtractionTask:
             extraction_module.SessionLocal = original_session_local
 
     @patch("app.tasks.extraction.httpx.Client")
-    @patch("app.tasks.extraction.Document")
-    def test_extract_link_content_parsing_error(
+    def test_extract_link_content_http_error(
         self,
-        mock_document: MagicMock,
         mock_client_class: MagicMock,
         sync_db_session: Session,
         saved_link_id: uuid.UUID,
     ) -> None:
+        import httpx
+
         mock_client = MagicMock()
         mock_client_class.return_value.__enter__.return_value = mock_client
         mock_response = MagicMock()
-        mock_response.text = "<html><body>Invalid</body></html>"
-        mock_response.raise_for_status = MagicMock()
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Server error", request=MagicMock(), response=MagicMock()
+        )
         mock_client.get.return_value = mock_response
-
-        mock_document.side_effect = ValueError("Parsing failed")
 
         from app.tasks.extraction import extract_link_content
         import app.tasks.extraction as extraction_module
@@ -181,6 +181,7 @@ class TestExtractionTask:
             link = get_link_by_id(sync_db_session, saved_link_id)
             assert link is not None
             assert link.extraction_status == ExtractionStatus.failed
+            assert link.extracted_content is None
 
         finally:
             extraction_module.SessionLocal = original_session_local

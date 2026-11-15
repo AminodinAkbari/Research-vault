@@ -5,8 +5,6 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from sqlalchemy.orm import configure_mappers
 
-from app.api.ui import router as ui_router
-from app.api.ui_project import router as ui_project_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.collected_search import router as collected_search_router
 from app.api.v1.links import router as links_router
@@ -14,7 +12,6 @@ from app.api.v1.notes import router as notes_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.roadmap import router as roadmap_router
 from app.api.v1.tags import router as tags_router
-from app.core.templates import templates  # noqa: F401  (canonical Jinja2Templates instance)
 from app.db.base import Base
 from app.db.session import engine
 
@@ -61,13 +58,6 @@ v1_router.include_router(
 v1_router.include_router(roadmap_router, tags=["roadmap"])
 app.include_router(v1_router)
 
-# ---------------------------------------------------------------------------
-# Server-rendered HTML UI — Jinja2 + HTMX, mounted at the root
-# ---------------------------------------------------------------------------
-
-app.include_router(ui_router)
-app.include_router(ui_project_router)
-
 
 @app.get("/health", tags=["health"])
 async def health() -> dict[str, str]:
@@ -76,6 +66,8 @@ async def health() -> dict[str, str]:
 origins = [
     "http://localhost:4200",
     "http://127.0.0.1:4200",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 app.add_middleware(

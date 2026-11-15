@@ -38,7 +38,15 @@ async def _create_link_via_api(client: AsyncClient, project_id: str, headers: di
     return response.json()["id"]
 
 
+# ---------------------------------------------------------------------------
+# LEGACY UI/HTMX tests — these exercise the removed server-rendered UI routes
+# in app/api/ui_project.py (form POST/DELETE highlights, reader page /read).
+# Replaced by the Next.js frontend in /frontend. Candidates for deletion.
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_create_highlight_via_ui(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -59,6 +67,7 @@ async def test_create_highlight_via_ui(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_highlights_shown_on_reader_page(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -75,6 +84,7 @@ async def test_highlights_shown_on_reader_page(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_delete_highlight_via_ui(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -100,7 +110,15 @@ async def test_delete_highlight_via_ui(client: AsyncClient) -> None:
     assert "removable highlight" not in reader_resp_after.text
 
 
+# ---------------------------------------------------------------------------
+# LEGACY UI/HTMX tests — removed server-rendered highlight routes
+# (app/api/ui_project.py). Replaced by the Next.js frontend.
+# Candidates for deletion.
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_delete_unknown_highlight_returns_404(client: AsyncClient) -> None:
     await _register(client)
     project_id = await _create_project_via_ui(client)
@@ -113,6 +131,7 @@ async def test_delete_unknown_highlight_returns_404(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
+@pytest.mark.legacy_ui
 async def test_highlights_require_project_ownership(client: AsyncClient) -> None:
     await _register(client, email="highlight-owner@example.com")
     project_id = await _create_project_via_ui(client, name="Owner Highlight Project")
@@ -261,6 +280,7 @@ async def test_highlights_api_requires_auth(client: AsyncClient, make_user) -> N
     project_id = await _create_project_via_api(client, headers)
     link_id = await _create_link_via_api(client, project_id, headers)
 
+    client.cookies.clear()
     response = await client.get(
         f"/api/v1/projects/{project_id}/links/{link_id}/highlights",
     )
