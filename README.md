@@ -8,11 +8,22 @@
 
 A self-hosted research and knowledge management platform you can run on your own machine. Collect web research, extract and read articles distraction-free, highlight passages, take notes — with **optional** one-shot AI helpers (summaries, roadmaps, semantic search) that stay out of the way when unconfigured.
 
+⭐ If you find this useful, please consider starring the repo!
+
+## Feature Showcase
+
+### 1. Reader Mode, Highlights & AI Explanations
+![Reader Mode and AI Explanations](./docs/output.webp)
+
+### 2. Web Search & Asynchronous Content Extraction
+![Web Search and Celery Extraction](./docs/output-2.webp)
+
+### 3. AI Research Roadmap, Semantic Search & Markdown Export
+![Roadmap, Search, and Export](./docs/output-3.webp)
+
 > ⚠️ **Active development** – new features land every few days. Check back often or star the repo to follow along.
 
 ---
-
-⭐ If you find this useful, please consider starring the repo!
 
 ## What is this?
 
